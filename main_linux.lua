@@ -1,3 +1,6 @@
+dofile("mem.lua")
+dofile("cpu.lua")
+
 local width, height = 160, 144
 
 function init_framebuffer()
@@ -29,6 +32,30 @@ function end_framebuffer()
 	-- Reset attributes
 	io.write("\027[0m")
 end
+
+-- Load byte of file into a table
+function load_file(filename)
+	local f = io.open(filename, "rb")
+	local s = f:read("*a")
+	f:close()
+	local ret = {}
+	for i = 1, #s, 1 do
+		ret[i] = s:byte(i)
+	end
+	return ret
+end
+
+local bootrom = load_file("dmg_rom.bin")
+local mem = mem_init(bootrom, {})
+local cpu = cpu_init(mem)
+
+--init_framebuffer()
+
+cpu["run_dbg"](5)
+print(cpu["state_str"]())
+
+--end_framebuffer()
+os.exit()
 
 init_framebuffer()
 local fb = {}
