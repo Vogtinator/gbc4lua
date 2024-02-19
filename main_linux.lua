@@ -45,13 +45,18 @@ function load_file(filename)
 	return ret
 end
 
-local bootrom = load_file("dmg_rom.bin")
-local mem = mem_init(bootrom, {})
+local bootrom = nil
+if #arg < 1 then
+	print("Usage: main_linux.lua rom.gb")
+	return 1
+end
+local rom = load_file(arg[1])
+local mem = mem_init(bootrom, rom)
 local cpu = cpu_init(mem)
 
 --init_framebuffer()
 
-cpu["run_dbg"](5)
+cpu["run_dbg"](102400)
 print(cpu["state_str"]())
 
 --end_framebuffer()
