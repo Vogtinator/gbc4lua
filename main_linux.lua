@@ -1,5 +1,8 @@
 dofile("mem.lua")
-dofile("cpu.lua")
+cpu_code = io.open("cpu_pre.lua", "rb"):read("*a")
+cpu_code = cpu_code .. io.open("cpu_gen.lua", "rb"):read("*a")
+cpu_code = cpu_code .. io.open("cpu_post.lua", "rb"):read("*a")
+assert(loadstring(cpu_code, "cpu.lua"))()
 
 local width, height = 160, 144
 
