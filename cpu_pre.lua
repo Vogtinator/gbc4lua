@@ -35,6 +35,16 @@ function cpu_init(mem)
 		return pc + 1, cycles - 2
 	end
 
+	opcode_map[0x18] = function(pc, cycles) -- jr imm8 (3 cycles)
+		local pc_l = pc
+		local off = read_byte(pc_l + 1)
+		if off > 128 then
+			return pc_l - 254 + off, cycles - 3
+		else
+			return pc_l + off + 2, cycles - 3
+		end
+	end
+
 	opcode_map[0x21] = function(pc, cycles) -- ld hl, imm16 (3 cycles)
 		l, h = read_byte(pc + 1), read_byte(pc + 2)
 		return pc + 3, cycles - 3
@@ -68,6 +78,43 @@ function cpu_init(mem)
 	opcode_map[0xAF] = function(pc, cycles) -- xor a, a (1 cycle)
 		a = 0
 		flag_zero, flag_carry = 1, 0
+		return pc + 1, cycles - 1
+	end
+
+	opcode_map[0xC9] = function(pc, cycles) -- ret (4 cycles)
+		local tgt = read_word(sp)
+		sp = sp + 2
+		if sp >= 0x10000 then
+			sp = sp - 0x10000
+		end
+
+		return tgt, cycles - 4
+	end
+
+	opcode_map[0xCD] = function(pc, cycles) -- call imm16 (6 cycles)
+		local tgt = read_word(pc + 1)
+		sp = sp - 2
+		if sp < 0 then
+			sp = sp + 0x10000
+		end
+
+		write_word(sp, pc + 3)
+
+		return tgt, cycles - 6
+	end
+
+	opcode_map[0xE0] = function(pc, cycles) -- ldh [imm8], a (3 cycles)
+		write_byte(0xFF00 + read_byte(pc + 1), a)
+		return pc + 2, cycles - 3
+	end
+
+	opcode_map[0xEA] = function(pc, cycles) -- ld [imm16], a (4 cycles)
+		write_byte(read_word(pc + 1), a)
+		return pc + 3, cycles - 4
+	end
+
+	opcode_map[0xF3] = function(pc, cycles) -- di (1 cycle)
+		print("UNIMPL: DI")
 		return pc + 1, cycles - 1
 	end
 
