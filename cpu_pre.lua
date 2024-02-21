@@ -36,12 +36,11 @@ function cpu_init(mem)
 	end
 
 	opcode_map[0x18] = function(pc, cycles) -- jr imm8 (3 cycles)
-		local pc_l = pc
-		local off = read_byte(pc_l + 1)
+		local off = read_byte(pc + 1)
 		if off > 128 then
-			return pc_l - 254 + off, cycles - 3
+			return pc - 254 + off, cycles - 3
 		else
-			return pc_l + off + 2, cycles - 3
+			return pc + off + 2, cycles - 3
 		end
 	end
 
@@ -81,14 +80,30 @@ function cpu_init(mem)
 		return pc + 1, cycles - 1
 	end
 
+	opcode_map[0xB7] = function(pc, cycles) -- or a, a (1 cycle)
+		flag_carry = 0
+		if a > 0 then
+			flag_zero = 0
+		else
+			flag_zero = 1
+		end
+		return pc + 1, cycles - 1
+	end
+
 	opcode_map[0xC9] = function(pc, cycles) -- ret (4 cycles)
-		local tgt = read_word(sp)
-		sp = sp + 2
-		if sp >= 0x10000 then
-			sp = sp - 0x10000
+		local sp_l = sp
+		local tgt = read_word(sp_l)
+		if sp_l < 0xFFFE then
+			sp = sp_l + 2
+		else
+			sp = sp_l - 0xFFFE
 		end
 
 		return tgt, cycles - 4
+	end
+
+	opcode_map[0xC3] = function(pc, cycles) -- jp imm16 (3 cycles)
+		return read_word(pc + 1), cycles - 3
 	end
 
 	opcode_map[0xCD] = function(pc, cycles) -- call imm16 (6 cycles)
@@ -113,13 +128,55 @@ function cpu_init(mem)
 		return pc + 3, cycles - 4
 	end
 
+	opcode_map[0xF1] = function(pc, cycles) -- pop af (3 cycles)
+		local sp_l = sp
+		local flags = read_byte(sp_l)
+		a = read_byte(sp_l + 1)
+
+		if flags >= 0x80 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+
+		if (flags % 0x20) >= 0x10 then
+			flag_carry = 1
+		else
+			flag_carry = 0
+		end
+
+		sp = sp_l + 2
+
+		return pc + 1, cycles - 3
+	end
+
 	opcode_map[0xF3] = function(pc, cycles) -- di (1 cycle)
 		print("UNIMPL: DI")
 		return pc + 1, cycles - 1
 	end
 
-	opcode_map[0xC3] = function(pc, cycles) -- jp imm16 (3 cycles)
-		return read_word(pc + 1), cycles - 3
+	opcode_map[0xF5] = function(pc, cycles) -- push af (4 cycles)
+		local sp_l = sp
+		sp_l = sp_l - 2
+		write_byte(sp_l, (flag_zero * 0x80) + (flag_carry * 0x10))
+		write_byte(sp_l + 1, a)
+		sp = sp_l
+		return pc + 1, cycles - 4
+	end
+
+	opcode_map[0xFE] = function(pc, cycles) -- cp a, imm8 (2 cycles)
+		local imm = read_byte(pc + 1)
+		if a == imm then
+			flag_zero = 1
+			flag_carry = 0
+		elseif a < imm then
+			flag_zero = 0
+			flag_carry = 1
+		else
+			flag_zero = 0
+			flag_carry = 0
+		end
+		return pc + 2, cycles - 2
 	end
 
 	-- Idea: Jit code generation through strings. Can be done for
@@ -152,7 +209,8 @@ function cpu_init(mem)
 			local opc = read_byte(pc_l)
 			local opc_impl = opcode_map[opc]
 			if opc_impl == nil then
-				pc = pc_l; print(cpu.state_str()); -- print(string.format("Opc: 0x%02x", opc))
+				pc = pc_l; print(cpu.state_str());
+				print(string.format("Opc: 0x%02x (%02x %02x)", opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
 				print(string.format("UNIMPL: opcode %02x", opc))
 			end
 			pc_l, cycles = opc_impl(pc_l, cycles)
@@ -179,8 +237,12 @@ Flags (ZC): %d%d]],
 
 	if not mem.has_bootrom() then
 		a = 0x01
-		-- todo: other regs
-		sp = 0xfffe
+		flag_zero = 1
+		c = 0x13
+		e = 0xD8
+		h = 0x01
+		l = 0x4D
+		sp = 0xFFFE
 		pc = 0x0100
 	end
 

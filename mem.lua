@@ -8,6 +8,11 @@ function mem_init(bootrom, rom)
 		wram[i] = 0
 	end
 
+	local hram = {}
+	for i = 1, 0x7F, 1 do
+		hram[i] = 0
+	end
+
 	local read_byte = function(address)
 		if address < 0x100 and bootrom_visible then
 			return bootrom[1 + address]
@@ -26,6 +31,10 @@ function mem_init(bootrom, rom)
 			return wram[address - 0xBFFF]
 		end
 
+		if address >= 0xFF80 and address < 0xFFFF then
+			return hram[address - 0xFF7F]
+		end
+
 		print(string.format("UNIMPL: read_byte 0x%04x", address))
 		return 0
 	end
@@ -33,6 +42,11 @@ function mem_init(bootrom, rom)
 	local write_byte = function(address, value)
 		if address >= 0xC000 and address < 0xE000 then
 			wram[address - 0xBFFF] = value
+			return
+		end
+
+		if address >= 0xFF80 and address < 0xFFFF then
+			hram[address - 0xFF7F] = value
 			return
 		end
 
