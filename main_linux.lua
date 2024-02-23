@@ -61,7 +61,7 @@ local cpu = cpu_init(bitops, mem)
 
 --init_framebuffer()
 
-cpu["run_dbg"](102400)
+cpu["run_dbg"](204800)
 print(cpu["state_str"]())
 
 --end_framebuffer()

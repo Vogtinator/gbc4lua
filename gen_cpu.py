@@ -165,7 +165,7 @@ for rh, rl, opc in [("b", "c", 0), ("d", "e", 1)]:
 		a = read_byte({rh} * 0x100 + {rl})
 		return pc + 1, cycles - 3""")
 
-# call absolute and jump relative conditional
+# ret, call absolute and jump relative conditional
 for opc, insn, cond in [(0, "nz", "flag_zero == 0"), (1, "z", "flag_zero == 1"),
                         (2, "nc", "flag_carry == 0"), (3, "c", "flag_carry == 1")]:
 	opcode(0b00100000 | opc << 3, f"""jr {insn}, imm8 (2/3 cycles)
@@ -191,6 +191,20 @@ for opc, insn, cond in [(0, "nz", "flag_zero == 0"), (1, "z", "flag_zero == 1"),
 			return tgt, cycles - 6
 		else
 			return pc + 3, cycles - 3
+		end""")
+
+	opcode(0b11000000 | opc << 3, f"""ret {insn} (2/4 cycles)
+		if {cond} then
+			local sp_l = sp
+			local tgt = read_word(sp_l)
+			if sp_l < 0xFFFE then
+				sp = sp_l + 2
+			else
+				sp = sp_l - 0xFFFE
+			end
+			return tgt, cycles - 6
+		else
+			return pc + 1, cycles - 2
 		end""")
 
 for opc, func in opcodes.items():

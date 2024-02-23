@@ -97,6 +97,36 @@ function cpu_init(bitops, mem)
 		return pc + 3, cycles - 3
 	end
 
+	opcode_map[0x32] = function(pc, cycles) -- ld a, [hl-] (2 cycles)
+		write_byte(h * 0x100 + l, a)
+		if l > 0 then
+			l = l - 1
+		elseif h > 0 then
+			l = 0xFF
+			h = h - 1
+		else
+			l = 0xFF
+			h = 0xFF
+		end
+		return pc + 1, cycles - 2
+	end
+
+	opcode_map[0x35] = function(pc, cycles) -- dec [hl] (3 cycles)
+		local addr = h * 0x100 + l
+		local value = read_byte(addr)
+		if value > 1 then
+			flag_zero = 0
+			write_byte(addr, value - 1)
+		elseif value == 1 then
+			flag_zero = 1
+			write_byte(addr, 0)
+		else
+			flag_zero = 0
+			write_byte(addr, 0xFF)
+		end
+		return pc + 1, cycles - 3
+	end
+
 	opcode_map[0x3F] = function(pc, cycles) -- ccf (1 cycle)
 		flag_carry = 1 - flag_carry
 		return pc + 1, cycles - 1
@@ -119,6 +149,17 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 1
 	end
 
+	opcode_map[0xB6] = function(pc, cycles) -- or a, [hl] (2 cycles)
+		a = tbl_or[1 + 0x100*a + read_byte(h * 0x100 + l)]
+		if a == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		flag_carry = 0
+		return pc + 1, cycles - 2
+	end
+
 	opcode_map[0xB7] = function(pc, cycles) -- or a, a (1 cycle)
 		flag_carry = 0
 		if a > 0 then
@@ -127,6 +168,27 @@ function cpu_init(bitops, mem)
 			flag_zero = 1
 		end
 		return pc + 1, cycles - 1
+	end
+
+	opcode_map[0xC3] = function(pc, cycles) -- jp imm16 (3 cycles)
+		return read_word(pc + 1), cycles - 3
+	end
+
+	opcode_map[0xC6] = function(pc, cycles) -- add a, imm8 (2 cycles)
+		local a_l = a + read_byte(pc + 1)
+		if a_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+		elseif a_l >= 0x100 then
+			flag_zero = 0
+			flag_carry = 1
+			a_l = a_l - 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+		end
+		a = a_l
+		return pc + 2, cycles - 2
 	end
 
 	opcode_map[0xC9] = function(pc, cycles) -- ret (4 cycles)
@@ -141,10 +203,6 @@ function cpu_init(bitops, mem)
 		return tgt, cycles - 4
 	end
 
-	opcode_map[0xC3] = function(pc, cycles) -- jp imm16 (3 cycles)
-		return read_word(pc + 1), cycles - 3
-	end
-
 	opcode_map[0xCD] = function(pc, cycles) -- call imm16 (6 cycles)
 		local tgt = read_word(pc + 1)
 		sp = sp - 2
@@ -155,6 +213,40 @@ function cpu_init(bitops, mem)
 		write_word(sp, pc + 3)
 
 		return tgt, cycles - 6
+	end
+
+	opcode_map[0xCE] = function(pc, cycles) -- adc a, imm8 (2 cycles)
+		local a_l = a + read_byte(pc + 1) + flag_carry
+		if a_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+		elseif a_l >= 0x100 then
+			flag_zero = 0
+			flag_carry = 1
+			a_l = a_l - 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+		end
+		a = a_l
+		return pc + 2, cycles - 2
+	end
+
+	opcode_map[0xD6] = function(pc, cycles) -- sub a, imm8 (2 cycles)
+		local a_l = a - read_byte(pc + 1)
+		if a_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+		elseif a_l < 0 then
+			flag_zero = 0
+			flag_carry = 1
+			a_l = a_l + 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+		end
+		a = a_l
+		return pc + 2, cycles - 2
 	end
 
 	opcode_map[0xE0] = function(pc, cycles) -- ldh [imm8], a (3 cycles)
