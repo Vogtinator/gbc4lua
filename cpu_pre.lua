@@ -77,19 +77,6 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 2
 	end
 
-	opcode_map[0x23] = function(pc, cycles) -- inc hl (2 cycles)
-		if l < 0xFF then
-			l = l + 1
-		elseif h < 0xFF then
-			l = 0
-			h = h + 1
-		else
-			l = 0
-			h = 0
-		end
-		return pc + 1, cycles - 2
-	end
-
 	opcode_map[0x2A] = function(pc, cycles) -- ld a, [hl+] (2 cycles)
 		a = read_byte(h * 0x100 + l)
 		if l < 0xFF then
@@ -175,6 +162,17 @@ function cpu_init(bitops, mem)
 		return pc + 2, cycles - 3
 	end
 
+	opcode_map[0xE6] = function(pc, cycles) -- and a, imm8 (2 cycles)
+		a = tbl_and[1 + 0x100*a + read_byte(pc + 1)]
+		if a == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		flag_carry = 0
+		return pc + 2, cycles - 2
+	end
+
 	opcode_map[0xEA] = function(pc, cycles) -- ld [imm16], a (4 cycles)
 		write_byte(read_word(pc + 1), a)
 		return pc + 3, cycles - 4
@@ -189,6 +187,11 @@ function cpu_init(bitops, mem)
 		end
 		flag_carry = 0
 		return pc + 2, cycles - 2
+	end
+
+	opcode_map[0xF0] = function(pc, cycles) -- ldh a, [imm8] (3 cycles)
+		a = read_byte(0xFF00 + read_byte(pc + 1))
+		return pc + 2, cycles - 3
 	end
 
 	opcode_map[0xF1] = function(pc, cycles) -- pop af (3 cycles)
@@ -225,6 +228,11 @@ function cpu_init(bitops, mem)
 		write_byte(sp_l + 1, a)
 		sp = sp_l
 		return pc + 1, cycles - 4
+	end
+
+	opcode_map[0xFA] = function(pc, cycles) -- ld a, [imm16] (4 cycles)
+		a = read_byte(read_word(pc + 1))
+		return pc + 3, cycles - 4
 	end
 
 	opcode_map[0xFE] = function(pc, cycles) -- cp a, imm8 (2 cycles)
@@ -271,6 +279,9 @@ function cpu_init(bitops, mem)
 		while cycles > 0 do
 			local opc = read_byte(pc_l)
 			local opc_impl = opcode_map[opc]
+			-- For tracing:
+			--print(string.format("PC %04x A %02x BC %02x%02x DE %02x%02x HL %02x%02x SP %04x CZ %d%d OPC %02x %02x %02x",
+			--pc_l, a, b, c, d, e, h, l, sp, flag_carry, flag_zero, opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
 			if opc_impl == nil then
 				pc = pc_l; print(cpu.state_str());
 				print(string.format("Opc: 0x%02x (%02x %02x)", opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))

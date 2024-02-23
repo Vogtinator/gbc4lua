@@ -89,6 +89,27 @@ for idx, r in reg8.items():
 		return pc + 2, cycles - 2
 		""")
 
+	if r != "a":
+		opcode(0b10110000 | idx, f"""or a, {r} (1 cycle)
+		a = tbl_or[1 + 0x100*a + {r}]
+		if a == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		flag_carry = 0
+		return pc + 1, cycles - 1""")
+
+		opcode(0b10101000 | idx, f"""xor a, {r} (1 cycle)
+		a = tbl_xor[1 + 0x100*a + {r}]
+		if a == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		flag_carry = 0
+		return pc + 1, cycles - 1""")
+
 	for idx_src, r_src in reg8.items():
 		if r == r_src: # Self-move
 			opcode(0b01000000 | (idx << 3) | idx_src, f"""ld {r}, {r_src} (1 cycle)
@@ -98,7 +119,7 @@ for idx, r in reg8.items():
 		{r} = {r_src}
 		return pc + 1, cycles - 1""")
 
-# push r16, pop r16
+# push r16, pop r16, ld r16 imm16, inc r16
 for rh, rl, opc in [("b", "c", 0), ("d", "e", 1), ("h", "l", 2)]:
 	opcode(0b11000001 | opc << 4, f"""pop {rh}{rl} (3 cycles)
 		local sp_l = sp
@@ -121,6 +142,28 @@ for rh, rl, opc in [("b", "c", 0), ("d", "e", 1), ("h", "l", 2)]:
 		write_byte(sp_l + 1, {rh})
 		sp = sp_l
 		return pc + 1, cycles - 4""")
+
+	opcode(0b00000001 | opc << 4, f"""ld {rh}{rl} (3 cycles)
+		{rl}, {rh} = read_byte(pc + 1), read_byte(pc + 2)
+		return pc + 3, cycles - 3""")
+
+	opcode(0b00000011 | opc << 4, f"""inc {rh}{rl} (2 cycles)
+		if {rl} < 0xFF then
+			{rl} = {rl} + 1
+		elseif {rh} < 0xFF then
+			{rl} = 0
+			{rh} = {rh} + 1
+		else
+			{rl} = 0
+			{rh} = 0
+		end
+		return pc + 1, cycles - 2""")
+
+# ld a [r16]
+for rh, rl, opc in [("b", "c", 0), ("d", "e", 1)]:
+	opcode(0b00001010 | opc << 4, f"""ld a, [{rh}{rl}] (2 cycles)
+		a = read_byte({rh} * 0x100 + {rl})
+		return pc + 1, cycles - 3""")
 
 # call absolute and jump relative conditional
 for opc, insn, cond in [(0, "nz", "flag_zero == 0"), (1, "z", "flag_zero == 1"),

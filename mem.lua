@@ -13,6 +13,11 @@ function mem_init(bootrom, rom)
 		hram[i] = 0
 	end
 
+	local vram = {}
+	for i = 1, 0x2000 do
+		vram[i] = 0
+	end
+
 	local read_byte = function(address)
 		if address < 0x100 and bootrom_visible then
 			return bootrom[1 + address]
@@ -25,6 +30,10 @@ function mem_init(bootrom, rom)
 		if address < 0x8000 then
 			-- TODO: Bank switching
 			return rom[1 + address]
+		end
+
+		if address < 0xA000 then
+			return vram[address - 0x7FFF]
 		end
 
 		if address >= 0xC000 and address < 0xE000 then
@@ -40,6 +49,13 @@ function mem_init(bootrom, rom)
 	end
 
 	local write_byte = function(address, value)
+		--print(string.format("%04x <- %02x", address, value))
+
+		if address >= 0x8000 and address < 0xA000 then
+			vram[address - 0x7FFF] = value
+			return
+		end
+
 		if address >= 0xC000 and address < 0xE000 then
 			wram[address - 0xBFFF] = value
 			return

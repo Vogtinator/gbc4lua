@@ -18,7 +18,8 @@ function bitops_init()
 		-- Split operands into 2b pieces
 		local a0, a1, a2, a3 = a % 4, math.floor(a / 4) % 4, math.floor(a / 16) % 4, math.floor(a / 64) % 4
 		-- Bitops are commutative, so a op b = r -> b op a = r.
-		-- This allows
+		-- This allows setting two lookup table entries at once.
+		-- TODO: Verify this ends up in the array part.
 		for b = 0, a do
 			local b0, b1, b2, b3 = b % 4, math.floor(b / 4) % 4, math.floor(b / 16) % 4, math.floor(b / 64) % 4
 
