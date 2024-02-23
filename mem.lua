@@ -60,7 +60,7 @@ function mem_init(bootrom, rom)
 
 	local write_word = function(address, value)
 		write_byte(address, value % 0x100)
-		write_byte(address + 1, value / 0x100)
+		write_byte(address + 1, math.floor(value / 0x100))
 	end
 
 	return {
