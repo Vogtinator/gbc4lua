@@ -1,5 +1,5 @@
 -- Returns a table with closures
-function cpu_init(mem)
+function cpu_init(bitops, mem)
 	local cpu = {}
 
 	-- Registers. Wraparound has to be handled manually.
@@ -15,6 +15,7 @@ function cpu_init(mem)
 	-- Local accessors for external variables
 	local read_byte, read_word = mem.read_byte, mem.read_word
 	local write_byte, write_word = mem.write_byte, mem.write_word
+	local tbl_and, tbl_or, tbl_xor = bitops.tbl_and, bitops.tbl_or, bitops.tbl_xor
 
 	-- The CPU implementation uses a table for opcode dispatching.
 	-- Registers are read and written through upvalues (variables
@@ -44,9 +45,49 @@ function cpu_init(mem)
 		end
 	end
 
+	opcode_map[0x1F] = function(pc, cycles) -- rra (1 cycle)
+		local r_l = a
+		if r_l % 2 == 0 then
+			a = r_l / 2 + 0x80*flag_carry
+			flag_carry = 0
+		else
+			a = (r_l - 1) / 2 + 0x80*flag_carry
+			flag_carry = 1
+		end
+		flag_zero = 0 -- always zero for some reason
+		return pc + 1, cycles - 1
+	end
+
 	opcode_map[0x21] = function(pc, cycles) -- ld hl, imm16 (3 cycles)
 		l, h = read_byte(pc + 1), read_byte(pc + 2)
 		return pc + 3, cycles - 3
+	end
+
+	opcode_map[0x22] = function(pc, cycles) -- ld [hl+], a (2 cycles)
+		write_byte(h * 0x100 + l, a)
+		if l < 0xFF then
+			l = l + 1
+		elseif h < 0xFF then
+			l = 0
+			h = h + 1
+		else
+			l = 0
+			h = 0
+		end
+		return pc + 1, cycles - 2
+	end
+
+	opcode_map[0x23] = function(pc, cycles) -- inc hl (2 cycles)
+		if l < 0xFF then
+			l = l + 1
+		elseif h < 0xFF then
+			l = 0
+			h = h + 1
+		else
+			l = 0
+			h = 0
+		end
+		return pc + 1, cycles - 2
 	end
 
 	opcode_map[0x2A] = function(pc, cycles) -- ld a, [hl+] (2 cycles)
@@ -72,6 +113,17 @@ function cpu_init(mem)
 	opcode_map[0x3F] = function(pc, cycles) -- ccf (1 cycle)
 		flag_carry = 1 - flag_carry
 		return pc + 1, cycles - 1
+	end
+
+	opcode_map[0xAE] = function(pc, cycles) -- xor a, [hl] (2 cycles)
+		a = tbl_xor[1 + 0x100*a + read_byte(h*0x100 + l)]
+		if a == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		flag_carry = 0
+		return pc + 1, cycles - 2
 	end
 
 	opcode_map[0xAF] = function(pc, cycles) -- xor a, a (1 cycle)
@@ -128,6 +180,17 @@ function cpu_init(mem)
 		return pc + 3, cycles - 4
 	end
 
+	opcode_map[0xEE] = function(pc, cycles) -- xor a, imm8 (2 cycles)
+		a = tbl_xor[1 + 0x100*a + read_byte(pc + 1)]
+		if a == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		flag_carry = 0
+		return pc + 2, cycles - 2
+	end
+
 	opcode_map[0xF1] = function(pc, cycles) -- pop af (3 cycles)
 		local sp_l = sp
 		local flags = read_byte(sp_l)
@@ -139,7 +202,7 @@ function cpu_init(mem)
 			flag_zero = 0
 		end
 
-		if (flags % 0x20) >= 0x10 then
+		if tbl_and[0x8001 + flags] ~= 0 then
 			flag_carry = 1
 		else
 			flag_carry = 0
@@ -189,7 +252,7 @@ function cpu_init(mem)
 	local opcode_map_cb = {}
 
 	opcode_map[0xCB] = function(pc, cycles)
-		local subobc = read_byte(pc)
+		local subobc = read_byte(pc + 1)
 		return opcode_map_cb[subobc](pc, cycles)
 	end
 

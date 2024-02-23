@@ -3,12 +3,18 @@
 reg8 = {0: "b", 1: "c", 2: "d", 3: "e", 4: "h", 5: "l", 7: "a"}
 
 opcodes = {}
-
 def opcode(opc, func):
 	if opc in opcodes:
-		raise RuntimeError(f"{opc} already defined")
+		raise RuntimeError(f"{hex(opc)} already defined")
 
 	opcodes[opc] = func
+
+opcodes_cb = {}
+def opcode_cb(opc, func):
+	if opc in opcodes_cb:
+		raise RuntimeError(f"cb {hex(opc)} already defined")
+
+	opcodes_cb[opc] = func
 
 # inc, dec, ld r imm8, ld r8 r8, ld r8 [hl]
 for idx, r in reg8.items():
@@ -44,9 +50,44 @@ for idx, r in reg8.items():
 		{r} = read_byte(h * 0x100 + l)
 		return pc + 1, cycles - 2""")
 
-	#opcode(0b01110000 | (idx << 0), f"""ld [hl], {r} (2 cycles)
-	#	write_byte(h * 0x100 + l, {r})
-	#	return pc + 1, cycles - 2""")
+	opcode(0b01110000 | (idx << 0), f"""ld [hl], {r} (2 cycles)
+		write_byte(h * 0x100 + l, {r})
+		return pc + 1, cycles - 2""")
+
+	opcode_cb(0b00111000 | idx, f"""srl {r} (2 cycles)
+		local r_l = {r}
+		if r_l == 0 then
+			flag_carry = 0
+			flag_zero = 1
+		elseif r_l == 1 then
+			flag_carry = 1
+			flag_zero = 1
+			{r} = 0
+		else
+			flag_carry = r_l % 2
+			flag_zero = 0
+			{r} = math.floor(r_l / 2)
+		end
+		return pc + 2, cycles - 2
+		""")
+
+	opcode_cb(0b00011000 | idx, f"""rr {r} (2 cycles)
+		local r_l = {r}
+		if r_l % 2 == 0 then
+			r_l = r_l / 2 + 0x80*flag_carry
+			flag_carry = 0
+		else
+			r_l = (r_l - 1) / 2 + 0x80*flag_carry
+			flag_carry = 1
+		end
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		{r} = r_l
+		return pc + 2, cycles - 2
+		""")
 
 	for idx_src, r_src in reg8.items():
 		if r == r_src: # Self-move
@@ -112,4 +153,9 @@ for opc, insn, cond in [(0, "nz", "flag_zero == 0"), (1, "z", "flag_zero == 1"),
 for opc, func in opcodes.items():
 	print(f"""
 	opcode_map[{hex(opc)}] = function(pc, cycles) -- {func}
+	end""")
+
+for opc, func in opcodes_cb.items():
+	print(f"""
+	opcode_map_cb[{hex(opc)}] = function(pc, cycles) -- {func}
 	end""")

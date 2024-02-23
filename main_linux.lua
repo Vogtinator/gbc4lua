@@ -3,6 +3,7 @@ cpu_code = io.open("cpu_pre.lua", "rb"):read("*a")
 cpu_code = cpu_code .. io.open("cpu_gen.lua", "rb"):read("*a")
 cpu_code = cpu_code .. io.open("cpu_post.lua", "rb"):read("*a")
 assert(loadstring(cpu_code, "cpu.lua"))()
+dofile("bitops.lua")
 
 local width, height = 160, 144
 
@@ -54,8 +55,9 @@ if #arg < 1 then
 	return 1
 end
 local rom = load_file(arg[1])
+local bitops = bitops_init()
 local mem = mem_init(bootrom, rom)
-local cpu = cpu_init(mem)
+local cpu = cpu_init(bitops, mem)
 
 --init_framebuffer()
 
