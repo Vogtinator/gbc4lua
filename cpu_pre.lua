@@ -158,6 +158,15 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 2
 	end
 
+	opcode_map[0x33] = function(pc, cycles) -- inc sp (2 cycles)
+		if sp ~= 0xFFFF then
+			sp = sp + 1
+		else
+			sp = 0
+		end
+		return pc + 1, cycles - 2
+	end
+
 	opcode_map[0x35] = function(pc, cycles) -- dec [hl] (3 cycles)
 		local addr = h * 0x100 + l
 		local value = read_byte(addr)
@@ -172,6 +181,32 @@ function cpu_init(bitops, mem)
 			write_byte(addr, 0xFF)
 		end
 		return pc + 1, cycles - 3
+	end
+
+	opcode_map[0x39] = function(pc, cycles) -- add hl, sp (2 cycles)
+		local hl = h*0x100 + l
+		hl = hl + sp
+
+		if hl >= 0x10000 then
+			hl = hl - 0x10000
+			flag_carry = 1
+		else
+			flag_carry = 0
+		end
+
+		h = math.floor(hl / 0x100)
+		l = hl % 0x100
+
+		return pc + 1, cycles - 2
+	end
+
+	opcode_map[0x3B] = function(pc, cycles) -- dec sp (2 cycles)
+		if sp == 0 then
+			sp = 0xFFFF
+		else
+			sp = sp - 1
+		end
+		return pc + 1, cycles - 2
 	end
 
 	opcode_map[0x3F] = function(pc, cycles) -- ccf (1 cycle)
@@ -337,6 +372,18 @@ function cpu_init(bitops, mem)
 		return pc + 2, cycles - 2
 	end
 
+	opcode_map[0xE8] = function(pc, cycles) -- add sp, imm8 (4 cycles)
+		sp = sp + read_byte(pc + 1)
+		flag_zero = 0
+		if sp >= 0x10000 then
+			flag_carry = 1
+			sp = sp - 0x10000
+		else
+			flag_carry = 0
+		end
+		return pc + 2, cycles - 4
+	end
+
 	opcode_map[0xE9] = function(pc, cycles) -- jp hl (1 cycle)
 		return h * 0x100 + l, cycles - 1
 	end
@@ -414,6 +461,22 @@ function cpu_init(bitops, mem)
 		write_byte(sp_l + 1, a)
 		sp = sp_l
 		return pc + 1, cycles - 4
+	end
+
+	opcode_map[0xF8] = function(pc, cycles) -- ld hl, sp + imm8 (3 cycles)
+		local hl = sp + read_byte(pc + 1)
+		flag_zero = 0
+		if hl >= 0x10000 then
+			flag_carry = 1
+			hl = hl - 0x10000
+		else
+			flag_carry = 0
+		end
+
+		h = math.floor(hl / 0x100)
+		l = hl % 0x100
+
+		return pc + 2, cycles - 3
 	end
 
 	opcode_map[0xF9] = function(pc, cycles) -- ld sp, hl (2 cycles)
