@@ -321,6 +321,11 @@ function cpu_init(bitops, mem)
 		return pc + 2, cycles - 3
 	end
 
+	opcode_map[0xE2] = function(pc, cycles) -- ldh [c], a (2 cycles)
+		write_byte(0xFF00 + c, a)
+		return pc + 1, cycles - 2
+	end
+
 	opcode_map[0xE6] = function(pc, cycles) -- and a, imm8 (2 cycles)
 		a = tbl_and[1 + 0x100*a + read_byte(pc + 1)]
 		if a == 0 then
@@ -355,6 +360,11 @@ function cpu_init(bitops, mem)
 	opcode_map[0xF0] = function(pc, cycles) -- ldh a, [imm8] (3 cycles)
 		a = read_byte(0xFF00 + read_byte(pc + 1))
 		return pc + 2, cycles - 3
+	end
+
+	opcode_map[0xF2] = function(pc, cycles) -- ld a, [c] (2 cycles)
+		a = read_byte(0xFF00 + c)
+		return pc + 1, cycles - 2
 	end
 
 	opcode_map[0xF1] = function(pc, cycles) -- pop af (3 cycles)
