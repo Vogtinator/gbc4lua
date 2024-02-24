@@ -48,6 +48,8 @@ function mem_init(bootrom, rom)
 		return 0
 	end
 
+	local sb = 0
+
 	local write_byte = function(address, value)
 		--print(string.format("%04x <- %02x", address, value))
 
@@ -58,6 +60,19 @@ function mem_init(bootrom, rom)
 
 		if address >= 0xC000 and address < 0xE000 then
 			wram[address - 0xBFFF] = value
+			return
+		end
+
+		if address == 0xFF01 then
+			sb = value
+			return
+		end
+
+		if address == 0xFF02 and value == 0x81 then
+			if sb >= 0x80 then
+				sb = sb - 0x80
+			end
+			print(string.format("Recv: %c", sb))
 			return
 		end
 
