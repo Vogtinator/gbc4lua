@@ -55,7 +55,7 @@ function ppu_init()
 	function ret.draw_tilemap(vram, fb)
 		for y = 0, 17 do
 			for x = 0, 19 do
-				ret.draw_tile(vram, vram[0x1801 + x + y * 20], fb, x * 8, y * 8)
+				ret.draw_tile(vram, vram[0x1801 + x + y * 32], fb, x * 8, y * 8)
 				--ret.draw_tile(vram, x + y * 20, fb, x * 8, y * 8)
 			end
 		end
