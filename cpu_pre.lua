@@ -366,6 +366,29 @@ function cpu_init(bitops, mem)
 		return cycles
 	end
 
+	local function assert_1b(r)
+		assert(r == 0 or r == 1)
+	end
+
+	local function assert_8b(r)
+		assert(r == math.floor(r))
+		assert(r >= 0 and r <= 0xFF)
+	end
+
+	local function assert_16b(r)
+		assert(r == math.floor(r))
+		assert(r >= 0 and r <= 0xFFFF)
+	end
+
+	local function validate()
+		assert_8b(a);
+		assert_8b(b); assert_8b(c);
+		assert_8b(d); assert_8b(e);
+		assert_8b(h); assert_8b(l);
+		assert_16b(sp); assert_16b(pc);
+		assert_1b(flag_carry); assert_1b(flag_zero);
+	end
+
 	cpu.run_dbg = function(cycles)
 		local pc_l = pc
 		while cycles > 0 do
@@ -377,9 +400,10 @@ function cpu_init(bitops, mem)
 			if opc_impl == nil then
 				pc = pc_l; print(cpu.state_str());
 				print(string.format("Opc: 0x%02x (%02x %02x)", opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
-				print(string.format("UNIMPL: opcode %02x", opc))
+				assert(false, (string.format("UNIMPL: opcode %02x", opc)))
 			end
 			pc_l, cycles = opc_impl(pc_l, cycles)
+			validate()
 		end
 		pc = pc_l
 		return cycles
