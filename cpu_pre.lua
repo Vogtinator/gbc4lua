@@ -9,8 +9,8 @@ function cpu_init(bitops, mem)
 	local sp, pc = 0, 0
 	-- Flags: Either 0 or 1
 	local flag_zero, flag_carry = 0, 0
-	-- BCD flags not implemented (yet)
-	-- local flag_negative, flag_half = 0, 0
+	-- BCD flags not implemented (yet) except for push/pop af + daa
+	local flag_half, flag_neg = 0, 0
 
 	-- Local accessors for external variables
 	local read_byte, read_word = mem.read_byte, mem.read_word
@@ -75,6 +75,43 @@ function cpu_init(bitops, mem)
 			h = 0
 		end
 		return pc + 1, cycles - 2
+	end
+
+	-- Copied from https://blog.ollien.com/posts/gb-daa/
+	opcode_map[0x27] = function(pc, cycles) -- daa (1 cycles)
+		local high, low = math.floor(a / 0x10), a % 0x10
+		local adj = 0
+
+		if (flag_neg == 0 and low > 9) or flag_half == 1 then
+			adj = 0x06
+		end
+
+		if (flag_neg == 0 and a > 0x99) or flag_carry == 1 then
+			adj = adj + 0x60;
+			flag_carry = 1
+		else
+			flag_carry = 0
+		end
+
+		if flag_neg == 1 then
+			adj = 0x100 - adj
+		end
+
+		a = a + adj
+
+		if a >= 0x100 then
+			a = a - 0x100
+		end
+
+		if a == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+
+		flag_half = 0
+
+		return pc + 1, cycles - 1
 	end
 
 	opcode_map[0x29] = function(pc, cycles) -- add hl, hl (2 cycles)
@@ -332,6 +369,18 @@ function cpu_init(bitops, mem)
 			flag_zero = 0
 		end
 
+		if tbl_and[0x4001 + flags] ~= 0 then
+			flag_neg = 1
+		else
+			flag_neg = 0
+		end
+
+		if tbl_and[0x2001 + flags] ~= 0 then
+			flag_half = 1
+		else
+			flag_half = 0
+		end
+
 		if tbl_and[0x1001 + flags] ~= 0 then
 			flag_carry = 1
 		else
@@ -351,7 +400,8 @@ function cpu_init(bitops, mem)
 	opcode_map[0xF5] = function(pc, cycles) -- push af (4 cycles)
 		local sp_l = sp
 		sp_l = sp_l - 2
-		write_byte(sp_l, (flag_zero * 0x80) + (flag_carry * 0x10))
+		--write_byte(sp_l, (flag_zero * 0x80) + (flag_carry * 0x10))
+		write_byte(sp_l, (flag_zero * 0x80) + (flag_neg * 0x40) + (flag_half * 0x20) + (flag_carry * 0x10))
 		write_byte(sp_l + 1, a)
 		sp = sp_l
 		return pc + 1, cycles - 4
@@ -435,11 +485,11 @@ function cpu_init(bitops, mem)
 			if opc_impl == nil or opc == 0xCB and opcode_map_cb[read_byte(pc_l+1)] == nil then
 				pc = pc_l; print(cpu.state_str());
 				print(string.format("Opc: 0x%02x (%02x %02x)", opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
-				return cycles
-				--assert(false, (string.format("UNIMPL: opcode %02x", opc)))
+				--return cycles
+				assert(false, (string.format("UNIMPL: opcode %02x", opc)))
 			end
 			pc_l, cycles = opc_impl(pc_l, cycles)
-			validate()
+			--validate()
 		end
 		pc = pc_l
 		return cycles
