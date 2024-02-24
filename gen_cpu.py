@@ -32,11 +32,14 @@ for idx, r in reg8.items():
 
 	opcode(0b00000101 | (idx << 3), f"""dec {r} (1 cycle)
 		local r_l = {r} -- local for faster access
-		if r_l == 1 then
+		if r_l > 1 then
+			{r} = r_l - 1
+			flag_zero = 0
+		elseif r_l == 1 then
 			{r} = 0
 			flag_zero = 1
-		else
-			{r} = r_l - 1
+		else -- r_l == 0
+			{r} = 0xFF
 			flag_zero = 0
 		end
 
