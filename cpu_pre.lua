@@ -188,6 +188,11 @@ function cpu_init(bitops, mem)
 		return pc + 2, cycles - 3
 	end
 
+	opcode_map[0x37] = function(pc, cycles) -- scf (1 cycle)
+		flag_carry = 1
+		return pc + 1, cycles - 1
+	end
+
 	opcode_map[0x39] = function(pc, cycles) -- add hl, sp (2 cycles)
 		local hl = h*0x100 + l
 		hl = hl + sp
@@ -254,6 +259,11 @@ function cpu_init(bitops, mem)
 		else
 			flag_zero = 1
 		end
+		return pc + 1, cycles - 1
+	end
+
+	opcode_map[0xBF] = function(pc, cycles) -- cp a, a (1 cycle)
+		flag_zero, flag_carry = 1, 0
 		return pc + 1, cycles - 1
 	end
 

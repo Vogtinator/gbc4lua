@@ -57,6 +57,93 @@ for idx, r in reg8.items():
 		write_byte(h * 0x100 + l, {r})
 		return pc + 1, cycles - 2""")
 
+	opcode(0b10000000 | idx, f"""add a, {r} (1 cycle)
+		local r_l = a + {r}
+		if r_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+			a = r_l
+		elseif r_l == 0x100 then
+			flag_zero = 1
+			flag_carry = 1
+			a = r_l - 0x100
+		elseif r_l > 0x100 then
+			flag_zero = 0
+			flag_carry = 1
+			a = r_l - 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+			a = r_l
+		end
+		return pc + 1, cycles - 1""")
+
+	opcode(0b10001000 | idx, f"""adc a, {r} (1 cycle)
+		local r_l = a + {r} + flag_carry
+		if r_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+			a = r_l
+		elseif r_l == 0x100 then
+			flag_zero = 1
+			flag_carry = 1
+			a = r_l - 0x100
+		elseif r_l > 0x100 then
+			flag_zero = 0
+			flag_carry = 1
+			a = r_l - 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+			a = r_l
+		end
+		return pc + 1, cycles - 1""")
+
+	opcode(0b10010000 | idx, f"""sub a, {r} (1 cycle)
+		local r_l = a - {r}
+		if r_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+			a = r_l
+		elseif r_l < 0 then
+			flag_zero = 0
+			flag_carry = 1
+			a = r_l + 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+			a = r_l
+		end
+		return pc + 1, cycles - 1""")
+
+	opcode(0b10011000 | idx, f"""sub a, {r} (1 cycle)
+		local r_l = a - {r} - flag_carry
+		if r_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+			a = r_l
+		elseif r_l < 0 then
+			flag_zero = 0
+			flag_carry = 1
+			a = r_l + 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+			a = r_l
+		end
+		return pc + 1, cycles - 1""")
+
+	opcode(0b10100000 | idx, f"""and a, {r} (1 cycle)
+		local r_l = tbl_and[1 + 0x100 * a + {r}]
+		a = r_l
+		flag_carry = 0
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 1, cycles - 1""")
+
 	opcode_cb(0b00110000 | idx, f"""swap {r} (2 cycles)
 		local r_l = {r}
 		flag_carry = 0
