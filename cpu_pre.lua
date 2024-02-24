@@ -119,24 +119,6 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 1
 	end
 
-	opcode_map[0x29] = function(pc, cycles) -- add hl, hl (2 cycles)
-		-- Manual carry might be faster?
-		local hl = h*0x100 + l
-		hl = hl + hl
-
-		if hl >= 0xFFFF then
-			hl = hl - 0x10000
-			flag_carry = 1
-		else
-			flag_carry = 0
-		end
-
-		h = math.floor(hl / 0x100)
-		l = hl % 0x100
-
-		return pc + 1, cycles - 2
-	end
-
 	opcode_map[0x2A] = function(pc, cycles) -- ld a, [hl+] (2 cycles)
 		a = read_byte(h * 0x100 + l)
 		if l < 0xFF then

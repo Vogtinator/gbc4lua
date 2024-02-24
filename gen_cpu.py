@@ -150,7 +150,7 @@ for idx, r in reg8.items():
 		{r} = {r_src}
 		return pc + 1, cycles - 1""")
 
-# push r16, pop r16, ld r16 imm16, inc r16, dec r16
+# push r16, pop r16, ld r16 imm16, inc r16, dec r16, add hl r16
 for rh, rl, opc in [("b", "c", 0), ("d", "e", 1), ("h", "l", 2)]:
 	opcode(0b11000001 | opc << 4, f"""pop {rh}{rl} (3 cycles)
 		local sp_l = sp
@@ -200,6 +200,23 @@ for rh, rl, opc in [("b", "c", 0), ("d", "e", 1), ("h", "l", 2)]:
 			{rl} = 0xFF
 			{rh} = 0xFF
 		end
+		return pc + 1, cycles - 2""")
+
+	opcode(0b00001001 | opc << 4, f"""add hl, {rh}{rl} (2 cycles)
+		-- Manual carry might be faster?
+		local hl = h*0x100 + l
+		hl = hl + {rh}*0x100 + {rl} -- Could be avoided for add hl, hl
+
+		if hl >= 0x10000 then
+			hl = hl - 0x10000
+			flag_carry = 1
+		else
+			flag_carry = 0
+		end
+
+		h = math.floor(hl / 0x100)
+		l = hl % 0x100
+
 		return pc + 1, cycles - 2""")
 
 # ld a [r16]
