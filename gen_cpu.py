@@ -57,6 +57,20 @@ for idx, r in reg8.items():
 		write_byte(h * 0x100 + l, {r})
 		return pc + 1, cycles - 2""")
 
+	opcode_cb(0b00110000 | idx, f"""swap {r} (2 cycles)
+		local r_l = {r}
+		flag_carry = 0
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+
+		-- Use lookup table instead?
+		{r} = math.floor(r_l / 0x10) + (r_l % 0x10) * 0x10
+		return pc + 2, cycles - 2
+		""")
+
 	opcode_cb(0b00111000 | idx, f"""srl {r} (2 cycles)
 		local r_l = {r}
 		if r_l == 0 then
@@ -111,6 +125,20 @@ for idx, r in reg8.items():
 			flag_zero = 0
 		end
 		flag_carry = 0
+		return pc + 1, cycles - 1""")
+
+		opcode(0b10111000 | idx, f"""cp a, {r} (1 cycle)
+		local r_l = {r}
+		if a == {r} then
+			flag_zero = 1
+			flag_carry = 0
+		elseif a < {r} then
+			flag_zero = 0
+			flag_carry = 1
+		else
+			flag_zero = 0
+			flag_carry = 0
+		end
 		return pc + 1, cycles - 1""")
 
 	for idx_src, r_src in reg8.items():

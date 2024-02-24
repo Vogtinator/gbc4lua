@@ -110,6 +110,11 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 2
 	end
 
+	opcode_map[0x2F] = function(pc, cycles) -- cpl (1 cycle)
+		a = tbl_xor[0xFF01 + a]
+		return pc + 1, cycles - 1
+	end
+
 	opcode_map[0x31] = function(pc, cycles) -- ld sp, imm16 (3 cycles)
 		sp = read_word(pc + 1)
 		return pc + 3, cycles - 3
@@ -197,7 +202,11 @@ function cpu_init(bitops, mem)
 		if a_l == 0 then
 			flag_zero = 1
 			flag_carry = 0
-		elseif a_l >= 0x100 then
+		elseif a_l == 0x100 then
+			flag_zero = 1
+			flag_carry = 1
+			a_l = a_l - 0x100
+		elseif a_l > 0x100 then
 			flag_zero = 0
 			flag_carry = 1
 			a_l = a_l - 0x100
@@ -238,7 +247,11 @@ function cpu_init(bitops, mem)
 		if a_l == 0 then
 			flag_zero = 1
 			flag_carry = 0
-		elseif a_l >= 0x100 then
+		elseif a_l == 0x100 then
+			flag_zero = 1
+			flag_carry = 1
+			a_l = a_l - 0x100
+		elseif a_l > 0x100 then
 			flag_zero = 0
 			flag_carry = 1
 			a_l = a_l - 0x100
@@ -319,7 +332,7 @@ function cpu_init(bitops, mem)
 			flag_zero = 0
 		end
 
-		if tbl_and[0x8001 + flags] ~= 0 then
+		if tbl_and[0x1001 + flags] ~= 0 then
 			flag_carry = 1
 		else
 			flag_carry = 0

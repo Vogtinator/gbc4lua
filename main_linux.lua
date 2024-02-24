@@ -31,6 +31,8 @@ function draw_framebuffer(fb)
 		-- Move to beginning of next line
 		io.write("\027[1E")
 	end
+
+	io.write("\027[0m")
 end
 
 function end_framebuffer()

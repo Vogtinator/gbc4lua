@@ -40,6 +40,11 @@ function mem_init(bootrom, rom)
 			return wram[address - 0xBFFF]
 		end
 
+		if address == 0xFF44 then
+			-- TODO: LY
+			return 0
+		end
+
 		if address >= 0xFF80 and address < 0xFFFF then
 			return hram[address - 0xFF7F]
 		end
