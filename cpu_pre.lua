@@ -26,6 +26,11 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 1
 	end
 
+	opcode_map[0x08] = function(pc, cycles) -- ld [imm16], sp (5)
+		write_word(read_word(pc + 1), sp)
+		return pc + 3, cycles - 5
+	end
+
 	opcode_map[0x11] = function(pc, cycles) -- ld de, imm16 (3 cycles)
 		e, d = read_byte(pc + 1), read_byte(pc + 2)
 		return pc + 3, cycles - 3
@@ -317,6 +322,18 @@ function cpu_init(bitops, mem)
 		return pc + 2, cycles - 2
 	end
 
+	opcode_map[0xD9] = function(pc, cycles) -- reti (4 cycles)
+		local sp_l = sp
+		local tgt = read_word(sp_l)
+		if sp_l < 0xFFFE then
+			sp = sp_l + 2
+		else
+			sp = sp_l - 0xFFFE
+		end
+		print("UNIMPL: reti")
+		return tgt, cycles - 4
+	end
+
 	opcode_map[0xE0] = function(pc, cycles) -- ldh [imm8], a (3 cycles)
 		write_byte(0xFF00 + read_byte(pc + 1), a)
 		return pc + 2, cycles - 3
@@ -405,6 +422,11 @@ function cpu_init(bitops, mem)
 		write_byte(sp_l + 1, a)
 		sp = sp_l
 		return pc + 1, cycles - 4
+	end
+
+	opcode_map[0xF9] = function(pc, cycles) -- ld sp, hl (2 cycles)
+		sp = h * 0x100 + l
+		return pc + 1, cycles - 2
 	end
 
 	opcode_map[0xFA] = function(pc, cycles) -- ld a, [imm16] (4 cycles)

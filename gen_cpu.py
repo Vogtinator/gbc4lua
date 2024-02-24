@@ -257,6 +257,15 @@ for opc, insn, cond in [(0, "nz", "flag_zero == 0"), (1, "z", "flag_zero == 1"),
 			return pc + 1, cycles - 2
 		end""")
 
+for i in range(0, 8):
+	opcode(0b11000111 | i << 3, f"""rst ${i} (4 cycles)
+		sp = sp - 2
+		if sp < 0 then
+			sp = sp + 0x10000
+		end
+		write_word(sp, pc + 1)
+		return {i*8}, cycles - 4""")
+
 for opc, func in opcodes.items():
 	print(f"""
 	opcode_map[{hex(opc)}] = function(pc, cycles) -- {func}
