@@ -419,7 +419,7 @@ function cpu_init(bitops, mem)
 			-- For tracing:
 			--print(string.format("PC %04x A %02x BC %02x%02x DE %02x%02x HL %02x%02x SP %04x CZ %d%d OPC %02x %02x %02x",
 			--pc_l, a, b, c, d, e, h, l, sp, flag_carry, flag_zero, opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
-			if opc_impl == nil then
+			if opc_impl == nil or opc == 0xCB and opcode_map_cb[read_byte(pc_l+1)] == nil then
 				pc = pc_l; print(cpu.state_str());
 				print(string.format("Opc: 0x%02x (%02x %02x)", opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
 				return cycles

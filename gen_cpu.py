@@ -122,7 +122,7 @@ for idx, r in reg8.items():
 		{r} = {r_src}
 		return pc + 1, cycles - 1""")
 
-# push r16, pop r16, ld r16 imm16, inc r16
+# push r16, pop r16, ld r16 imm16, inc r16, dec r16
 for rh, rl, opc in [("b", "c", 0), ("d", "e", 1), ("h", "l", 2)]:
 	opcode(0b11000001 | opc << 4, f"""pop {rh}{rl} (3 cycles)
 		local sp_l = sp
@@ -162,11 +162,23 @@ for rh, rl, opc in [("b", "c", 0), ("d", "e", 1), ("h", "l", 2)]:
 		end
 		return pc + 1, cycles - 2""")
 
+	opcode(0b00001011 | opc << 4, f"""dec {rh}{rl} (2 cycles)
+		if {rl} > 0 then
+			{rl} = {rl} - 1
+		elseif {rh} > 0 then
+			{rl} = 0xFF
+			{rh} = {rh} - 1
+		else
+			{rl} = 0xFF
+			{rh} = 0xFF
+		end
+		return pc + 1, cycles - 2""")
+
 # ld a [r16]
 for rh, rl, opc in [("b", "c", 0), ("d", "e", 1)]:
 	opcode(0b00001010 | opc << 4, f"""ld a, [{rh}{rl}] (2 cycles)
 		a = read_byte({rh} * 0x100 + {rl})
-		return pc + 1, cycles - 3""")
+		return pc + 1, cycles - 2""")
 
 # ret, call absolute and jump relative conditional
 for opc, insn, cond in [(0, "nz", "flag_zero == 0"), (1, "z", "flag_zero == 1"),
@@ -181,6 +193,13 @@ for opc, insn, cond in [(0, "nz", "flag_zero == 0"), (1, "z", "flag_zero == 1"),
 			end
 		else
 			return pc + 2, cycles - 2
+		end""")
+
+	opcode(0b11000010 | opc << 3, f"""jp {insn}, imm16 (3/4 cycles)
+		if {cond} then
+			return read_word(pc + 1), cycles - 4
+		else
+			return pc + 3, cycles - 3
 		end""")
 
 	opcode(0b11000100 | opc << 3, f"""call {insn}, imm16 (3/6 cycles)
