@@ -49,12 +49,16 @@ function load_file(filename)
 	return ret
 end
 
-local bootrom = nil
-if #arg < 1 then
-	print("Usage: main_linux.lua rom.gb")
+local bootom, rom
+if #arg == 1 then
+	rom = load_file(arg[1])
+elseif #arg == 2 then
+	rom = load_file(arg[1])
+	bootrom = load_file(arg[2])
+else
+	print("Usage: main_linux.lua rom.gb [bootrom.bin]")
 	return 1
 end
-local rom = load_file(arg[1])
 local bitops = bitops_init()
 local mem = mem_init(bootrom, rom)
 local cpu = cpu_init(bitops, mem)
