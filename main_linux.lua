@@ -4,6 +4,7 @@ cpu_code = cpu_code .. io.open("cpu_gen.lua", "rb"):read("*a")
 cpu_code = cpu_code .. io.open("cpu_post.lua", "rb"):read("*a")
 assert(loadstring(cpu_code, "cpu.lua"))()
 dofile("bitops.lua")
+dofile("ppu.lua")
 
 local width, height = 160, 144
 
@@ -62,30 +63,19 @@ end
 local bitops = bitops_init()
 local mem = mem_init(bootrom, rom)
 local cpu = cpu_init(bitops, mem)
-
---init_framebuffer()
-
-cpu["run_dbg"](204800)
-print(cpu["state_str"]())
-
---end_framebuffer()
-os.exit()
+local ppu = ppu_init()
 
 init_framebuffer()
+
 local fb = {}
-for idx = 1, width * height, 6 do
+for idx = 1, width * height do
 	fb[idx] = 0
-	fb[idx+1] = 1
-	fb[idx+2] = 2
-	fb[idx+3] = 3
-	fb[idx+4] = 2
-	fb[idx+5] = 2
 end
---while true do
-for a = 0, 10, 1 do
-	for idx = 1, width * height, 1 do
-		fb[idx] = math.random(0, 3)
-	end
-	draw_framebuffer(fb)
-end
+
+cpu["run_dbg"](1024000)
+print(cpu["state_str"]())
+
+ppu.draw_tilemap(mem.vram, fb)
+draw_framebuffer(fb)
+
 end_framebuffer()

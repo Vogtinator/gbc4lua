@@ -77,6 +77,24 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 2
 	end
 
+	opcode_map[0x29] = function(pc, cycles) -- add hl, hl (2 cycles)
+		-- Manual carry might be faster?
+		local hl = h*0x100 + l
+		hl = hl + hl
+
+		if hl >= 0xFFFF then
+			hl = hl - 0x10000
+			flag_carry = 1
+		else
+			flag_carry = 0
+		end
+
+		h = math.floor(hl / 0x100)
+		l = hl % 0x100
+
+		return pc + 1, cycles - 2
+	end
+
 	opcode_map[0x2A] = function(pc, cycles) -- ld a, [hl+] (2 cycles)
 		a = read_byte(h * 0x100 + l)
 		if l < 0xFF then
@@ -265,6 +283,10 @@ function cpu_init(bitops, mem)
 		return pc + 2, cycles - 2
 	end
 
+	opcode_map[0xE9] = function(pc, cycles) -- jp hl (1 cycle)
+		return h * 0x100 + l, cycles - 1
+	end
+
 	opcode_map[0xEA] = function(pc, cycles) -- ld [imm16], a (4 cycles)
 		write_byte(read_word(pc + 1), a)
 		return pc + 3, cycles - 4
@@ -400,7 +422,8 @@ function cpu_init(bitops, mem)
 			if opc_impl == nil then
 				pc = pc_l; print(cpu.state_str());
 				print(string.format("Opc: 0x%02x (%02x %02x)", opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
-				assert(false, (string.format("UNIMPL: opcode %02x", opc)))
+				return cycles
+				--assert(false, (string.format("UNIMPL: opcode %02x", opc)))
 			end
 			pc_l, cycles = opc_impl(pc_l, cycles)
 			validate()

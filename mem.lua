@@ -84,6 +84,7 @@ function mem_init(bootrom, rom)
 		read_byte = read_byte,
 		write_byte = write_byte,
 		read_word = read_word,
-		write_word = write_word
+		write_word = write_word,
+		vram = vram
 	}
 end
