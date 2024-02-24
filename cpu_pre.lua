@@ -183,6 +183,11 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 3
 	end
 
+	opcode_map[0x36] = function(pc, cycles) -- ld [hl], imm8 (3 cycles)
+		write_byte(h * 0x100 + l, read_byte(pc + 1))
+		return pc + 2, cycles - 3
+	end
+
 	opcode_map[0x39] = function(pc, cycles) -- add hl, sp (2 cycles)
 		local hl = h*0x100 + l
 		hl = hl + sp
@@ -351,6 +356,23 @@ function cpu_init(bitops, mem)
 		return tgt, cycles - 4
 	end
 
+	opcode_map[0xDE] = function(pc, cycles) -- sbc a, imm8 (2 cycles)
+		local a_l = a - read_byte(pc + 1) - flag_carry
+		if a_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+		elseif a_l < 0 then
+			flag_zero = 0
+			flag_carry = 1
+			a_l = a_l + 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+		end
+		a = a_l
+		return pc + 2, cycles - 2
+	end
+
 	opcode_map[0xE0] = function(pc, cycles) -- ldh [imm8], a (3 cycles)
 		write_byte(0xFF00 + read_byte(pc + 1), a)
 		return pc + 2, cycles - 3
@@ -461,6 +483,17 @@ function cpu_init(bitops, mem)
 		write_byte(sp_l + 1, a)
 		sp = sp_l
 		return pc + 1, cycles - 4
+	end
+
+	opcode_map[0xF6] = function(pc, cycles) -- or a, imm8 (2 cycles)
+		a = tbl_or[1 + 0x100*a + read_byte(pc + 1)]
+		if a == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		flag_carry = 0
+		return pc + 2, cycles - 2
 	end
 
 	opcode_map[0xF8] = function(pc, cycles) -- ld hl, sp + imm8 (3 cycles)
