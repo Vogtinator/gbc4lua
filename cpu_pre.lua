@@ -930,7 +930,7 @@ function cpu_init(bitops, mem)
 				pc = pc_l; print(cpu.state_str());
 				print(string.format("Opc: 0x%02x (%02x %02x)", opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
 				--return cycles
-				assert(false, (string.format("UNIMPL: opcode %02x", opc)))
+				assert(false, string.format("UNIMPL: opcode %02x", opc))
 			end
 			pc_l, cycles = opc_impl(pc_l, cycles)
 			--validate()
