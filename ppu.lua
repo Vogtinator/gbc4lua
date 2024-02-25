@@ -95,11 +95,16 @@ function ppu_init()
 		end
 	end
 
-	function ret.next_line()
+	function ret.next_line(mem)
 		if reg_lcdc < 0x80 then
 			-- PPU off
 			ly = 0
 			return
+		end
+
+		if ly == 144 then
+			-- Begin of vblank
+			mem.raise_irq(1)
 		end
 
 		if ly == 153 then

@@ -11,6 +11,8 @@ function cpu_init(bitops, mem)
 	local flag_zero, flag_carry = 0, 0
 	-- BCD flags not implemented (yet) except for push/pop af + daa
 	local flag_half, flag_neg = 0, 0
+	-- Interrupt master enable
+	local flag_ime = false
 
 	-- Local accessors for external variables
 	local read_byte, read_word = mem.read_byte, mem.read_word
@@ -534,7 +536,7 @@ function cpu_init(bitops, mem)
 		else
 			sp = sp_l - 0xFFFE
 		end
-		print("UNIMPL: reti")
+		flag_ime = true
 		return tgt, cycles - 4
 	end
 
@@ -653,7 +655,7 @@ function cpu_init(bitops, mem)
 	end
 
 	opcode_map[0xF3] = function(pc, cycles) -- di (1 cycle)
-		print("UNIMPL: DI")
+		flag_ime = false
 		return pc + 1, cycles - 1
 	end
 
@@ -702,6 +704,11 @@ function cpu_init(bitops, mem)
 	opcode_map[0xFA] = function(pc, cycles) -- ld a, [imm16] (4 cycles)
 		a = read_byte(read_word(pc + 1))
 		return pc + 3, cycles - 4
+	end
+
+	opcode_map[0xFB] = function(pc, cycles) -- ei (1 cycle)
+		flag_ime = true -- On HW delayed by a cycle but hopefully doesn't matter
+		return pc + 1, cycles - 1
 	end
 
 	opcode_map[0xFE] = function(pc, cycles) -- cp a, imm8 (2 cycles)
@@ -885,6 +892,22 @@ function cpu_init(bitops, mem)
 		return pc + 2, cycles - 4
 	end
 
+	function check_interrupts(pc, cycles)
+		if not flag_ime then
+			return pc, cycles
+		end
+
+		local irq = mem.next_irq()
+		if not irq then
+			return pc, cycles
+		end
+
+		flag_ime = false
+		sp = sp - 2
+		write_word(sp, pc)
+		return 0x40 + 8*irq, cycles - 5
+	end
+
 	cpu.run = function(cycles)
 		local pc_l = pc
 		while cycles > 0 do
@@ -921,6 +944,7 @@ function cpu_init(bitops, mem)
 	cpu.run_dbg = function(cycles)
 		local pc_l = pc
 		while cycles > 0 do
+			pc_l, cycles = check_interrupts(pc_l, cycles)
 			local opc = read_byte(pc_l)
 			local opc_impl = opcode_map[opc]
 			-- For tracing:

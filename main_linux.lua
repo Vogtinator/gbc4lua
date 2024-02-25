@@ -64,7 +64,7 @@ else
 end
 local bitops = bitops_init()
 local ppu = ppu_init()
-local mem = mem_init(bootrom, rom, ppu)
+local mem = mem_init(bootrom, rom, ppu, bitops)
 local cpu = cpu_init(bitops, mem)
 
 init_framebuffer()
@@ -77,7 +77,7 @@ end
 while true do
 	for y = 0, 143 do
 		cpu["run_dbg"](114)
-		ppu.next_line()
+		ppu.next_line(mem)
 	end
 
 	ppu.draw_tilemap(mem.vram, fb)
@@ -85,7 +85,7 @@ while true do
 
 	for y = 144, 155 do
 		cpu["run_dbg"](114)
-		ppu.next_line()
+		ppu.next_line(mem)
 	end
 end
 
