@@ -322,6 +322,25 @@ for idx, r in reg8.items():
 		{r} = {r_src}
 		return pc + 1, cycles - 1""")
 
+	for bit in range(0, 8):
+		opcode_cb(0b01000000 | (bit << 3) | idx, f"""bit {bit}, {r} (2 cycles)
+		if tbl_and[{hex(1 << bit)}01 + {r}] == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		-- To make 10-bitops pass:
+		-- flag_neg, flag_half = 0, 1
+		return pc + 2, cycles - 2""")
+
+		opcode_cb(0b10000000 | (bit << 3) | idx, f"""res {bit}, {r} (2 cycles)
+		{r} = tbl_and[{hex(0xFF & ~(1 << bit))}01 + {r}]
+		return pc + 2, cycles - 2""")
+
+		opcode_cb(0b11000000 | (bit << 3) | idx, f"""set {bit}, {r} (2 cycles)
+		{r} = tbl_or[{hex(1 << bit)}01 + {r}]
+		return pc + 2, cycles - 2""")
+
 # push r16, pop r16, ld r16 imm16, inc r16, dec r16, add hl r16
 for rh, rl, opc in [("b", "c", 0), ("d", "e", 1), ("h", "l", 2)]:
 	opcode(0b11000001 | opc << 4, f"""pop {rh}{rl} (3 cycles)
