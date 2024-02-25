@@ -26,7 +26,33 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 1
 	end
 
-	opcode_map[0x08] = function(pc, cycles) -- ld [imm16], sp (5)
+	opcode_map[0x07] = function(pc, cycles) -- rlca (1 cycle)
+		local r_l = a
+		if r_l >= 0x80 then
+			a = (r_l - 0x80) * 2 + 1 -- Could be factored out
+			flag_carry = 1
+		else
+			a = r_l * 2
+			flag_carry = 0
+		end
+		flag_zero = 0 -- always zero for some reason
+		return pc + 1, cycles - 1
+	end
+
+	opcode_map[0x0F] = function(pc, cycles) -- rrca (1 cycle)
+		local r_l = a
+		if r_l % 2 == 0 then
+			a = r_l / 2
+			flag_carry = 0
+		else
+			a = (r_l - 1) / 2 + 0x80
+			flag_carry = 1
+		end
+		flag_zero = 0 -- always zero for some reason
+		return pc + 1, cycles - 1
+	end
+
+	opcode_map[0x08] = function(pc, cycles) -- ld [imm16], sp (5 cycles)
 		write_word(read_word(pc + 1), sp)
 		return pc + 3, cycles - 5
 	end
@@ -39,6 +65,18 @@ function cpu_init(bitops, mem)
 	opcode_map[0x12] = function(pc, cycles) -- ld [de], a (2 cycles)
 		write_byte(d * 0x100 + e, a)
 		return pc + 1, cycles - 2
+	end
+
+	opcode_map[0x17] = function(pc, cycles) -- rla (1 cycle)
+		flag_zero = 0
+		if a >= 0x80 then
+			a = (a - 0x80) * 2 + flag_carry
+			flag_carry = 1
+		else
+			a = a * 2 + flag_carry
+			flag_carry = 0
+		end
+		return pc + 1, cycles - 1
 	end
 
 	opcode_map[0x18] = function(pc, cycles) -- jr imm8 (3 cycles)

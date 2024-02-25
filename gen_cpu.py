@@ -144,6 +144,94 @@ for idx, r in reg8.items():
 		end
 		return pc + 1, cycles - 1""")
 
+	opcode_cb(0b00000000 | idx, f"""rlc {r} (2 cycles)
+		local r_l = {r}
+		if r_l >= 0x80 then
+			r_l = (r_l - 0x80) * 2 + 1 -- Could be factored out
+			flag_carry = 1
+		else
+			r_l = r_l * 2
+			flag_carry = 0
+		end
+		{r} = r_l
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 2""")
+
+	opcode_cb(0b00001000 | idx, f"""rrc {r} (2 cycles)
+		local r_l = {r}
+		if r_l % 2 == 0 then
+			r_l = r_l / 2
+			flag_carry = 0
+		else
+			r_l = (r_l - 1) / 2 + 0x80
+			flag_carry = 1
+		end
+		{r} = r_l
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 2""")
+
+	opcode_cb(0b00010000 | idx, f"""rl {r} (2 cycles)
+		local r_l = {r}
+		if r_l >= 0x80 then
+			r_l = (r_l - 0x80) * 2 + flag_carry
+			flag_carry = 1
+		else
+			r_l = r_l * 2 + flag_carry
+			flag_carry = 0
+		end
+		{r} = r_l
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 2""")
+
+	opcode_cb(0b00100000 | idx, f"""sla {r} (2 cycles)
+		local r_l = {r}
+		if r_l >= 0x80 then
+			r_l = (r_l - 0x80) * 2
+			flag_carry = 1
+		else
+			r_l = r_l * 2
+			flag_carry = 0
+		end
+		{r} = r_l
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 2""")
+
+	opcode_cb(0b00101000 | idx, f"""sra {r} (2 cycles)
+		local r_l = {r}
+		if r_l % 2 == 1 then
+			r_l = (r_l - 1) / 2
+			flag_carry = 1
+		else
+			r_l = r_l / 2
+			flag_carry = 0
+		end
+		if r_l >= 0x40 then
+			r_l = r_l + 0x80
+		end
+		{r} = r_l
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 2""")
+
 	opcode_cb(0b00110000 | idx, f"""swap {r} (2 cycles)
 		local r_l = {r}
 		flag_carry = 0
@@ -155,8 +243,7 @@ for idx, r in reg8.items():
 
 		-- Use lookup table instead?
 		{r} = math.floor(r_l / 0x10) + (r_l % 0x10) * 0x10
-		return pc + 2, cycles - 2
-		""")
+		return pc + 2, cycles - 2""")
 
 	opcode_cb(0b00111000 | idx, f"""srl {r} (2 cycles)
 		local r_l = {r}
@@ -172,8 +259,7 @@ for idx, r in reg8.items():
 			flag_zero = 0
 			{r} = math.floor(r_l / 2)
 		end
-		return pc + 2, cycles - 2
-		""")
+		return pc + 2, cycles - 2""")
 
 	opcode_cb(0b00011000 | idx, f"""rr {r} (2 cycles)
 		local r_l = {r}
@@ -190,8 +276,7 @@ for idx, r in reg8.items():
 			flag_zero = 0
 		end
 		{r} = r_l
-		return pc + 2, cycles - 2
-		""")
+		return pc + 2, cycles - 2""")
 
 	if r != "a":
 		opcode(0b10110000 | idx, f"""or a, {r} (1 cycle)
