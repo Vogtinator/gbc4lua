@@ -8,7 +8,7 @@ local bootrom = nil
 
 local bitops = bitops_init()
 local ppu = ppu_init()
-local mem = mem_init(bootrom, rom_tbl, ppu)
+local mem = mem_init(bootrom, rom_tbl, ppu, bitops)
 local cpu = cpu_init(bitops, mem)
 
 local width, height = 160, 144
@@ -17,7 +17,7 @@ for idx = 1, width * height do
 	fb[idx] = 0
 end
 
-local palette = {64, 128, 200, 255}
+local palette = {255, 200, 128, 64}
 
 function on.paint(gc)
 	local idx = 1
@@ -31,18 +31,15 @@ function on.paint(gc)
 end
 
 function on.timer()
-	for y = 0, 143 do
-		cpu["run_dbg"](114)
-		ppu.next_line()
+	for frame = 0, 10 do
+		for y = 0, 155 do
+			cpu["run"](114)
+			ppu.next_line(mem)
+		end
 	end
 
 	ppu.draw_tilemap(mem.vram, fb)
 	platform.window:invalidate(0, 0, width, height)
-
-	for y = 144, 155 do
-		cpu["run_dbg"](114)
-		ppu.next_line()
-	end
 end
 
-timer.start(0.02)
+timer.start(0.2)

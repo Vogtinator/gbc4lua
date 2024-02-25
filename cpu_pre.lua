@@ -910,6 +910,7 @@ function cpu_init(bitops, mem)
 
 	cpu.run = function(cycles)
 		local pc_l = pc
+		pc_l, cycles = check_interrupts(pc_l, cycles)
 		while cycles > 0 do
 			local opc = read_byte(pc_l)
 			pc_l, cycles = opcode_map[opc](pc_l, cycles)
