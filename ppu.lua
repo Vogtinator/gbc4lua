@@ -25,6 +25,9 @@ function ppu_init()
 	-- PPU registers
 	local reg_lcdc, reg_scx, reg_scy, reg_bgp = 0, 0, 0, 0
 
+	-- reg_bgp split up
+	local bgp_0, bgp_1, bgp_2, bgp_3 = 0, 0, 0, 0
+
 	-- PPU state
 	local ly = 0
 
@@ -33,21 +36,20 @@ function ppu_init()
 	function ret.draw_tile(vram, tile, fb, x, y)
 		local tile_addr = 1 + tile * 0x10
 		local fb_addr = 1 + x + y * 160
-		local c_0, c_1, c_2, c_3 = 0, 1, 2, 3 -- TODO
 		for y = 0, 7 do
 			local pxdata = tbl_expand[1+vram[tile_addr]] + 2 * tbl_expand[1+vram[tile_addr+1]]
 			for x = 0, 7 do
 				if pxdata >= 0xC000 then
-					fb[fb_addr] = c_3
+					fb[fb_addr] = bgp_3
 					pxdata = pxdata - 0xC000
 				elseif pxdata >= 0x8000 then
-					fb[fb_addr] = c_2
+					fb[fb_addr] = bgp_2
 					pxdata = pxdata - 0x8000
 				elseif pxdata >= 0x4000 then
-					fb[fb_addr] = c_1
+					fb[fb_addr] = bgp_1
 					pxdata = pxdata - 0x4000
 				else
-					fb[fb_addr] = c_0
+					fb[fb_addr] = bgp_0
 				end
 				pxdata = pxdata * 4
 				fb_addr = fb_addr + 1
@@ -90,6 +92,15 @@ function ppu_init()
 			reg_scy = value
 		elseif address == 0xFF47 then
 			reg_bgp = value
+
+			local bgp = reg_bgp
+			bgp_0 = bgp % 4
+			bgp = (bgp - bgp_0) / 4
+			bgp_1 = bgp % 4
+			bgp = (bgp - bgp_1) / 4
+			bgp_2 = bgp % 4
+			bgp = (bgp - bgp_2) / 4
+			bgp_3 = bgp % 4
 		else
 			print(string.format("UNIMPL: PPU write %04x %02x", address, value))
 		end

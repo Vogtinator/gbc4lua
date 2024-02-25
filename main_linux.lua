@@ -13,8 +13,8 @@ function init_framebuffer()
 	io.write(string.rep("\n", height/2))
 end
 
-local palette_fg = {30, 37, 90, 97}
-local palette_bg = {40, 47, 100, 107}
+local palette_fg = {97, 90, 37, 30}
+local palette_bg = {107, 100, 47, 40}
 
 function draw_framebuffer(fb)
 	-- Move cursor to the top of the area
