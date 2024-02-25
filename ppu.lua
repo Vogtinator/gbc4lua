@@ -22,6 +22,12 @@ function ppu_init()
 	assert(tbl_expand[1+0xF0] == 0x5500)
 	assert(tbl_expand[1+0xFF] == 0x5555)
 
+	-- PPU registers
+	local reg_lcdc, reg_scx, reg_scy, reg_bgp = 0, 0, 0, 0
+
+	-- PPU state
+	local ly = 0
+
 	local ret = {}
 
 	function ret.draw_tile(vram, tile, fb, x, y)
@@ -58,6 +64,48 @@ function ppu_init()
 				ret.draw_tile(vram, vram[0x1801 + x + y * 32], fb, x * 8, y * 8)
 				--ret.draw_tile(vram, x + y * 20, fb, x * 8, y * 8)
 			end
+		end
+	end
+
+	function ret.read_byte(address)
+		--print(string.format("PPU read %04x", address))
+		if address == 0xFF40 then
+			return reg_lcdc
+		elseif address == 0xFF42 then
+			return reg_scy
+		elseif address == 0xFF44 then
+			return ly
+		elseif address == 0xFF47 then
+			return reg_bgp
+		else
+			print(string.format("UNIMPL: PPU write %04x %02x", address, value))
+		end
+	end
+
+	function ret.write_byte(address, value)
+		--print(string.format("PPU write %04x %02x", address, value))
+		if address == 0xFF40 then
+			reg_lcdc = value
+		elseif address == 0xFF42 then
+			reg_scy = value
+		elseif address == 0xFF47 then
+			reg_bgp = value
+		else
+			print(string.format("UNIMPL: PPU write %04x %02x", address, value))
+		end
+	end
+
+	function ret.next_line()
+		if reg_lcdc < 0x80 then
+			-- PPU off
+			ly = 0
+			return
+		end
+
+		if ly == 153 then
+			ly = 0
+		else
+			ly = ly + 1
 		end
 	end
 

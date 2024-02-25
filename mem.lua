@@ -1,5 +1,8 @@
-function mem_init(bootrom, rom)
+function mem_init(bootrom, rom, ppu)
 	local bootrom_visible = bootrom ~= nil
+
+	local ppu_read_byte = ppu.read_byte
+	local ppu_write_byte = ppu.write_byte
 
 	local ret = {}
 
@@ -40,9 +43,8 @@ function mem_init(bootrom, rom)
 			return wram[address - 0xBFFF]
 		end
 
-		if address == 0xFF44 then
-			-- TODO: LY
-			return 0
+		if address >= 0xFF40 and address < 0xFF70 then
+			return ppu_read_byte(address)
 		end
 
 		if address >= 0xFF80 and address < 0xFFFF then
@@ -79,6 +81,10 @@ function mem_init(bootrom, rom)
 			end
 			print(string.format("Recv: %c", sb))
 			return
+		end
+
+		if address >= 0xFF40 and address < 0xFF70 then
+			return ppu_write_byte(address, value)
 		end
 
 		if address >= 0xFF80 and address < 0xFFFF then

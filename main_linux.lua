@@ -63,9 +63,9 @@ else
 	return 1
 end
 local bitops = bitops_init()
-local mem = mem_init(bootrom, rom)
-local cpu = cpu_init(bitops, mem)
 local ppu = ppu_init()
+local mem = mem_init(bootrom, rom, ppu)
+local cpu = cpu_init(bitops, mem)
 
 init_framebuffer()
 
@@ -74,10 +74,19 @@ for idx = 1, width * height do
 	fb[idx] = 0
 end
 
-cpu["run_dbg"](1024000)
-print(cpu["state_str"]())
+while true do
+	for y = 0, 143 do
+		cpu["run_dbg"](114)
+		ppu.next_line()
+	end
 
-ppu.draw_tilemap(mem.vram, fb)
-draw_framebuffer(fb)
+	ppu.draw_tilemap(mem.vram, fb)
+	draw_framebuffer(fb)
+
+	for y = 144, 155 do
+		cpu["run_dbg"](114)
+		ppu.next_line()
+	end
+end
 
 end_framebuffer()
