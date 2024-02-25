@@ -116,7 +116,7 @@ for idx, r in reg8.items():
 		end
 		return pc + 1, cycles - 1""")
 
-	opcode(0b10011000 | idx, f"""sub a, {r} (1 cycle)
+	opcode(0b10011000 | idx, f"""sbc a, {r} (1 cycle)
 		local r_l = a - {r} - flag_carry
 		if r_l == 0 then
 			flag_zero = 1
@@ -301,10 +301,10 @@ for idx, r in reg8.items():
 
 		opcode(0b10111000 | idx, f"""cp a, {r} (1 cycle)
 		local r_l = {r}
-		if a == {r} then
+		if a == r_l then
 			flag_zero = 1
 			flag_carry = 0
-		elseif a < {r} then
+		elseif a < r_l then
 			flag_zero = 0
 			flag_carry = 1
 		else
@@ -340,6 +340,28 @@ for idx, r in reg8.items():
 		opcode_cb(0b11000000 | (bit << 3) | idx, f"""set {bit}, {r} (2 cycles)
 		{r} = tbl_or[{hex(1 << bit)}01 + {r}]
 		return pc + 2, cycles - 2""")
+
+# bit ops for [hl]
+for bit in range(0, 8):
+	opcode_cb(0b01000110 | (bit << 3), f"""bit {bit}, {r} (3 cycles)
+		if tbl_and[{hex(1 << bit)}01 + read_byte(0x100*h + l)] == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		-- To make 11-op a, hl pass:
+		-- flag_neg, flag_half = 0, 1
+		return pc + 2, cycles - 3""")
+
+	opcode_cb(0b10000110 | (bit << 3), f"""res {bit}, {r} (4 cycles)
+		local addr = 0x100*h + l
+		write_byte(addr, tbl_and[{hex(0xFF & ~(1 << bit))}01 + read_byte(addr)])
+		return pc + 2, cycles - 4""")
+
+	opcode_cb(0b11000110 | (bit << 3), f"""set {bit}, {r} (4 cycles)
+		local addr = 0x100*h + l
+		write_byte(addr, tbl_or[{hex(1 << bit)}01 + read_byte(addr)])
+		return pc + 2, cycles - 4""")
 
 # push r16, pop r16, ld r16 imm16, inc r16, dec r16, add hl r16
 for rh, rl, opc in [("b", "c", 0), ("d", "e", 1), ("h", "l", 2)]:
@@ -412,6 +434,10 @@ for rh, rl, opc in [("b", "c", 0), ("d", "e", 1), ("h", "l", 2)]:
 
 # ld a [r16]
 for rh, rl, opc in [("b", "c", 0), ("d", "e", 1)]:
+	opcode(0b00000010 | opc << 4, f"""ld [{rh}{rl}], a (2 cycles)
+		write_byte({rh} * 0x100 + {rl}, a)
+		return pc + 1, cycles - 2""")
+
 	opcode(0b00001010 | opc << 4, f"""ld a, [{rh}{rl}] (2 cycles)
 		a = read_byte({rh} * 0x100 + {rl})
 		return pc + 1, cycles - 2""")

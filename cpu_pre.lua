@@ -205,6 +205,19 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 2
 	end
 
+	opcode_map[0x34] = function(pc, cycles) -- inc [hl] (3 cycles)
+		local addr = h * 0x100 + l
+		local value = read_byte(addr)
+		if value == 0xFF then
+			write_byte(addr, 0)
+			flag_zero = 1
+		else
+			write_byte(addr, value + 1)
+			flag_zero = 0
+		end
+		return pc + 1, cycles - 3
+	end
+
 	opcode_map[0x35] = function(pc, cycles) -- dec [hl] (3 cycles)
 		local addr = h * 0x100 + l
 		local value = read_byte(addr)
@@ -248,6 +261,20 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 2
 	end
 
+	opcode_map[0x3A] = function(pc, cycles) -- ld [hl-], a (2 cycles)
+		a = read_byte(h * 0x100 + l)
+		if l > 0 then
+			l = l - 1
+		elseif h > 0 then
+			l = 0xFF
+			h = h - 1
+		else
+			l = 0xFF
+			h = 0xFF
+		end
+		return pc + 1, cycles - 2
+	end
+
 	opcode_map[0x3B] = function(pc, cycles) -- dec sp (2 cycles)
 		if sp == 0 then
 			sp = 0xFFFF
@@ -260,6 +287,98 @@ function cpu_init(bitops, mem)
 	opcode_map[0x3F] = function(pc, cycles) -- ccf (1 cycle)
 		flag_carry = 1 - flag_carry
 		return pc + 1, cycles - 1
+	end
+
+	opcode_map[0x86] = function(pc, cycles) -- add a, [hl] (2 cycles)
+		local r_l = a + read_byte(0x100*h + l)
+		if r_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+			a = r_l
+		elseif r_l == 0x100 then
+			flag_zero = 1
+			flag_carry = 1
+			a = r_l - 0x100
+		elseif r_l > 0x100 then
+			flag_zero = 0
+			flag_carry = 1
+			a = r_l - 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+			a = r_l
+		end
+		return pc + 1, cycles - 2
+	end
+
+	opcode_map[0x8E] = function(pc, cycles) -- adc a, [hl] (2 cycles)
+		local r_l = a + read_byte(0x100*h + l) + flag_carry
+		if r_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+			a = r_l
+		elseif r_l == 0x100 then
+			flag_zero = 1
+			flag_carry = 1
+			a = r_l - 0x100
+		elseif r_l > 0x100 then
+			flag_zero = 0
+			flag_carry = 1
+			a = r_l - 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+			a = r_l
+		end
+		return pc + 1, cycles - 2
+	end
+
+	opcode_map[0x96] = function(pc, cycles) -- sub a, [hl] (2 cycles)
+		local r_l = a - read_byte(0x100*h + l)
+		if r_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+			a = r_l
+		elseif r_l < 0 then
+			flag_zero = 0
+			flag_carry = 1
+			a = r_l + 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+			a = r_l
+		end
+		return pc + 1, cycles - 2
+	end
+
+	opcode_map[0x9E] = function(pc, cycles) -- sbc a, [hl] (2 cycles)
+		local r_l = a - read_byte(0x100*h + l) - flag_carry
+		if r_l == 0 then
+			flag_zero = 1
+			flag_carry = 0
+			a = r_l
+		elseif r_l < 0 then
+			flag_zero = 0
+			flag_carry = 1
+			a = r_l + 0x100
+		else
+			flag_zero = 0
+			flag_carry = 0
+			a = r_l
+		end
+		return pc + 1, cycles - 2
+	end
+
+	opcode_map[0xA6] = function(pc, cycles) -- and a, [hl] (2 cycles)
+		local r_l = tbl_and[1 + 0x100 * a + read_byte(0x100*h + l)]
+		a = r_l
+		flag_carry = 0
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 1, cycles - 2
 	end
 
 	opcode_map[0xAE] = function(pc, cycles) -- xor a, [hl] (2 cycles)
@@ -298,6 +417,21 @@ function cpu_init(bitops, mem)
 			flag_zero = 1
 		end
 		return pc + 1, cycles - 1
+	end
+
+	opcode_map[0xBE] = function(pc, cycles) -- cp a, [hl] (2 cycles)
+		local r_l = read_byte(h*0x100 + l)
+		if a == r_l then
+			flag_zero = 1
+			flag_carry = 0
+		elseif a < r_l then
+			flag_zero = 0
+			flag_carry = 1
+		else
+			flag_zero = 0
+			flag_carry = 0
+		end
+		return pc + 1, cycles - 2
 	end
 
 	opcode_map[0xBF] = function(pc, cycles) -- cp a, a (1 cycle)
@@ -596,7 +730,159 @@ function cpu_init(bitops, mem)
 
 	opcode_map[0xCB] = function(pc, cycles)
 		local subobc = read_byte(pc + 1)
+		--To make some tests happy
+		--flag_neg, flag_half = 0, 0
 		return opcode_map_cb[subobc](pc, cycles)
+	end
+
+	opcode_map_cb[0x06] = function(pc, cycles) -- rlc [hl] (4 cycles)
+		local addr = 0x100*h + l
+		local r_l = read_byte(addr)
+		if r_l >= 0x80 then
+			r_l = (r_l - 0x80) * 2 + 1 -- Could be factored out
+			flag_carry = 1
+		else
+			r_l = r_l * 2
+			flag_carry = 0
+		end
+		write_byte(addr, r_l)
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 4
+	end
+
+	opcode_map_cb[0x0E] = function(pc, cycles) -- rrc [hl] (4 cycles)
+		local addr = 0x100*h + l
+		local r_l = read_byte(addr)
+		if r_l % 2 == 0 then
+			r_l = r_l / 2
+			flag_carry = 0
+		else
+			r_l = (r_l - 1) / 2 + 0x80
+			flag_carry = 1
+		end
+		write_byte(addr, r_l)
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 4
+	end
+
+	opcode_map_cb[0x16] = function(pc, cycles) -- rl [hl] (4 cycles)
+		local addr = 0x100*h + l
+		local r_l = read_byte(addr)
+		if r_l >= 0x80 then
+			r_l = (r_l - 0x80) * 2 + flag_carry
+			flag_carry = 1
+		else
+			r_l = r_l * 2 + flag_carry
+			flag_carry = 0
+		end
+		write_byte(addr, r_l)
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 4
+	end
+
+	opcode_map_cb[0x1E] = function(pc, cycles) -- rr [hl] (4 cycles)
+		local addr = 0x100*h + l
+		local r_l = read_byte(addr)
+		if r_l % 2 == 0 then
+			r_l = r_l / 2 + 0x80*flag_carry
+			flag_carry = 0
+		else
+			r_l = (r_l - 1) / 2 + 0x80*flag_carry
+			flag_carry = 1
+		end
+		write_byte(addr, r_l)
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 4
+	end
+
+	opcode_map_cb[0x26] = function(pc, cycles) -- sla [hl] (4 cycles)
+		local addr = 0x100*h + l
+		local r_l = read_byte(addr)
+		if r_l >= 0x80 then
+			r_l = (r_l - 0x80) * 2
+			flag_carry = 1
+		else
+			r_l = r_l * 2
+			flag_carry = 0
+		end
+		write_byte(addr, r_l)
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 4
+	end
+
+	opcode_map_cb[0x2E] = function(pc, cycles) -- sra [hl] (4 cycles)
+		local addr = 0x100*h + l
+		local r_l = read_byte(addr)
+		if r_l % 2 == 1 then
+			r_l = (r_l - 1) / 2
+			flag_carry = 1
+		else
+			r_l = r_l / 2
+			flag_carry = 0
+		end
+		if r_l >= 0x40 then
+			r_l = r_l + 0x80
+		end
+		write_byte(addr, r_l)
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+		return pc + 2, cycles - 4
+	end
+
+	opcode_map_cb[0x36] = function(pc, cycles) -- swap [hl] (4 cycles)
+		local addr = 0x100*h + l
+		local r_l = read_byte(addr)
+		flag_carry = 0
+		if r_l == 0 then
+			flag_zero = 1
+		else
+			flag_zero = 0
+		end
+
+		-- Use lookup table instead?
+		write_byte(addr, math.floor(r_l / 0x10) + (r_l % 0x10) * 0x10)
+		return pc + 2, cycles - 4
+	end
+
+	opcode_map_cb[0x3E] = function(pc, cycles) -- srl [hl] (4 cycles)
+		local addr = 0x100*h + l
+		local r_l = read_byte(addr)
+		if r_l == 0 then
+			flag_carry = 0
+			flag_zero = 1
+		elseif r_l == 1 then
+			flag_carry = 1
+			flag_zero = 1
+			write_byte(addr, 0)
+		else
+			flag_carry = r_l % 2
+			flag_zero = 0
+			write_byte(addr, math.floor(r_l / 2))
+		end
+		return pc + 2, cycles - 4
 	end
 
 	cpu.run = function(cycles)
