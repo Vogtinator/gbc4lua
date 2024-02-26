@@ -176,6 +176,14 @@ function mem_init(bootrom, rom, ppu, bitops)
 		vram = vram
 	}
 
+	function ret.get_rom_bank(pc)
+		if pc >= 0x4000 then
+			return rom_bank + 1
+		else
+			return 0
+		end
+	end
+
 	-- Sets the corresponding bits in reg_if
 	function ret.raise_irq(bits)
 		reg_if = bitops.tbl_or[1 + 0x100*bits + reg_if]

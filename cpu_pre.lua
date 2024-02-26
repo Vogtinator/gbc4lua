@@ -956,12 +956,9 @@ function cpu_init(bitops, mem)
 			local opc = read_byte(pc_l)
 			local opc_impl = opcode_map[opc]
 			-- For tracing:
-			--print(string.format("PC %04x A %02x BC %02x%02x DE %02x%02x HL %02x%02x SP %04x CZ %d%d OPC %02x %02x %02x",
-			--pc_l, a, b, c, d, e, h, l, sp, flag_carry, flag_zero, opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
+			--pc = pc_l; print(cpu.state_str():
 			if opc_impl == nil or opc == 0xCB and opcode_map_cb[read_byte(pc_l+1)] == nil then
-				pc = pc_l; print(cpu.state_str());
-				print(string.format("Opc: 0x%02x (%02x %02x)", opc, read_byte(pc_l + 1), read_byte(pc_l + 2)))
-				--return cycles
+				pc = pc_l; print(cpu.state_str())
 				assert(false, string.format("UNIMPL: opcode %02x", opc))
 			end
 			pc_l, cycles = opc_impl(pc_l, cycles)
@@ -971,21 +968,12 @@ function cpu_init(bitops, mem)
 		return cycles
 	end
 
-	cpu.state_str = function()
-		return string.format([[
-A: %02x
-B: %02x C: %02x D: %02x E: %02x
-H: %02x L: %02x (HL: %02x%02x)
-PC: %04x SP: %04x
-Flags (ZC): %d%d]],
-		a,
-		b, c, d, e,
-		h, l, h, l,
-		pc, sp,
-		flag_zero, flag_carry)
+	function cpu.state_str()
+		return string.format("PC %02x %04x A %02x BC %02x%02x DE %02x%02x HL %02x%02x SP %04x CZ %d%d OPC %02x %02x %02x",
+			mem.get_rom_bank(pc), pc, a, b, c, d, e, h, l, sp, flag_carry, flag_zero, read_byte(pc), read_byte(pc + 1), read_byte(pc + 2))
 	end
 
-	cpu.get_pc = function() return pc end
+	function cpu.get_pc() return pc end
 
 	if not mem.has_bootrom() then
 		a = 0x01
