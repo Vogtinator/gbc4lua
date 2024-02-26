@@ -80,7 +80,8 @@ function ppu_init()
 		elseif address == 0xFF47 then
 			return reg_bgp
 		else
-			print(string.format("UNIMPL: PPU write %04x %02x", address, value))
+			print(string.format("UNIMPL: PPU read %04x", address))
+			return 0
 		end
 	end
 
