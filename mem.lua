@@ -7,6 +7,9 @@ function mem_init(bootrom, rom, ppu, bitops)
 	local reg_if, reg_ie = 0, 0
 	local reg_joyp = 0
 
+	-- Selected rom bank minus one
+	local rom_bank = 0
+
 	local ret = {}
 
 	local wram = {}
@@ -39,8 +42,7 @@ function mem_init(bootrom, rom, ppu, bitops)
 		end
 
 		if address < 0x8000 then
-			-- TODO: Bank switching
-			return rom[1 + address]
+			return rom[1 + address + rom_bank * 0x4000]
 		end
 
 		if address < 0xA000 then
@@ -80,6 +82,17 @@ function mem_init(bootrom, rom, ppu, bitops)
 
 	local write_byte = function(address, value)
 		--print(string.format("%04x <- %02x", address, value))
+
+		if address >= 0x2000 and address < 0x4000 then
+			if value == 0 then
+				rom_bank = 0
+			elseif value < 0x20 then
+				rom_bank = value - 1
+			else
+				print("UNIMPL: High rom bank bits")
+			end
+			return
+		end
 
 		if address >= 0x8000 and address < 0xA000 then
 			vram[address - 0x7FFF] = value
