@@ -291,6 +291,13 @@ function cpu_init(bitops, mem)
 		return pc + 1, cycles - 1
 	end
 
+	opcode_map[0x76] = function(pc, cycles) -- halt
+		-- Return to main loop.
+		-- TODO: Keep in halted state until an interrupt actually occurs
+		-- to avoid spurious wakeups.
+		return pc + 1, 0
+	end
+
 	opcode_map[0x86] = function(pc, cycles) -- add a, [hl] (2 cycles)
 		local r_l = a + read_byte(0x100*h + l)
 		if r_l == 0 then
