@@ -32,6 +32,10 @@ function mem_init(bootrom, rom, ppu, bitops)
 		oam[i] = 0
 	end
 
+	if rom[1+0x147] > 3 then
+		warn(string.format("Cartridge type 0x%02x not supported", rom[1+0x147]))
+	end
+
 	local read_byte = function(address)
 		if address < 0x100 and bootrom_visible then
 			return bootrom[1 + address]
