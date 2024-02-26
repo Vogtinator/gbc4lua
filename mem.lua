@@ -72,7 +72,7 @@ function mem_init(bootrom, rom, ppu, bitops)
 			return reg_ie
 		end
 
-		print(string.format("UNIMPL: read_byte 0x%04x", address))
+		warn(string.format("UNIMPL: read_byte 0x%04x", address))
 		return 0
 	end
 
@@ -137,7 +137,7 @@ function mem_init(bootrom, rom, ppu, bitops)
 			return
 		end
 
-		print(string.format("UNIMPL: write_byte 0x%04x value %02x", address, value))
+		warn(string.format("UNIMPL: write_byte 0x%04x value %02x", address, value))
 		return
 	end
 

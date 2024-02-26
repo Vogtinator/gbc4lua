@@ -1,3 +1,7 @@
+function warn(msg)
+	print(msg)
+end
+
 dofile("mem.lua")
 cpu_code = io.open("cpu_pre.lua", "rb"):read("*a")
 cpu_code = cpu_code .. io.open("cpu_gen.lua", "rb"):read("*a")
