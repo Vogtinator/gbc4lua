@@ -1,3 +1,7 @@
+function warn(msg)
+	--print(msg)
+end
+
 -- Convert the string in rom to a table
 local rom_tbl = {}
 for i = 1, #rom, 1 do
