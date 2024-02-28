@@ -83,9 +83,14 @@ function ppu_init(bitops)
 		if bitops.tbl_and[0x0801 + reg_lcdc] ~= 0 then
 			vram_offset = 0x1C01
 		end
+		local signed_addr_mode = bitops.tbl_and[0x1001 + reg_lcdc] == 0
 		for y = 0, 17 do
 			for x = 0, 19 do
-				ret.draw_tile(vram, vram[vram_offset + x + y * 32], fb, x * 8, y * 8, bgp_0, bgp_1, bgp_2, bgp_3)
+				local tile = vram[vram_offset + x + y * 32]
+				if signed_addr_mode and tile < 128 then
+					tile = tile + 256
+				end
+				ret.draw_tile(vram, tile, fb, x * 8, y * 8, bgp_0, bgp_1, bgp_2, bgp_3)
 			end
 		end
 
