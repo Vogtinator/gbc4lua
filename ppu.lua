@@ -81,7 +81,7 @@ function ppu_init(bitops)
 
 		local vram_offset = 0x1801
 		if bitops.tbl_and[0x0801 + reg_lcdc] ~= 0 then
-			--vram_offset = 0x1C01
+			vram_offset = 0x1C01
 		end
 		for y = 0, 17 do
 			for x = 0, 19 do

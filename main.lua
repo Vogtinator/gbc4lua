@@ -78,3 +78,43 @@ function love.update(dt)
 		ppu.next_line(mem)
 	end
 end
+
+function love.keypressed(key, scancode, isrepeat)
+	if key == "w" then
+		mem.joyp_press(mem.btn_up, 0)
+	elseif key == "a" then
+		mem.joyp_press(mem.btn_left, 0)
+	elseif key == "s" then
+		mem.joyp_press(mem.btn_down, 0)
+	elseif key == "d" then
+		mem.joyp_press(mem.btn_right, 0)
+	elseif key == "j" then
+		mem.joyp_press(0, mem.btn_a)
+	elseif key == "k" then
+		mem.joyp_press(0, mem.btn_b)
+	elseif key == "return" then
+		mem.joyp_press(0, mem.btn_start)
+	elseif key == "space" then
+		mem.joyp_press(0, mem.btn_select)
+	end
+end
+
+function love.keyreleased(key, scancode)
+	if key == "w" then
+		mem.joyp_release(mem.btn_up, 0)
+	elseif key == "a" then
+		mem.joyp_release(mem.btn_left, 0)
+	elseif key == "s" then
+		mem.joyp_release(mem.btn_down, 0)
+	elseif key == "d" then
+		mem.joyp_release(mem.btn_right, 0)
+	elseif key == "j" then
+		mem.joyp_release(0, mem.btn_a)
+	elseif key == "k" then
+		mem.joyp_release(0, mem.btn_b)
+	elseif key == "return" then
+		mem.joyp_release(0, mem.btn_start)
+	elseif key == "space" then
+		mem.joyp_release(0, mem.btn_select)
+	end
+end
