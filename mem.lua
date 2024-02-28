@@ -141,6 +141,15 @@ function mem_init(bootrom, rom, ppu, bitops)
 		end
 
 		if address >= 0xFF40 and address < 0xFF70 then
+			if address == 0xFF46 then
+				-- OAM DMA. Recognize and speed up wait loops here?
+				local src = value * 0x100
+				for off = 0, 0x9F do
+					oam[1+off] = read_byte(src + off)
+				end
+				return
+			end
+
 			return ppu_write_byte(address, value)
 		end
 
@@ -173,6 +182,7 @@ function mem_init(bootrom, rom, ppu, bitops)
 		write_byte = write_byte,
 		read_word = read_word,
 		write_word = write_word,
+		oam = oam,
 		vram = vram
 	}
 

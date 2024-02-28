@@ -1,4 +1,4 @@
-function ppu_init()
+function ppu_init(bitops)
 	-- Lookup table to map 8b -> 16b with every second bit 0, for merging tile bit planes
 	local tbl_expand = {}
 	for i = 0, 255 do
@@ -24,32 +24,37 @@ function ppu_init()
 
 	-- PPU registers
 	local reg_lcdc, reg_scx, reg_scy, reg_bgp = 0, 0, 0, 0
-
-	-- reg_bgp split up
-	local bgp_0, bgp_1, bgp_2, bgp_3 = 0, 0, 0, 0
+	local reg_obp0, reg_obp1 = 0, 0
 
 	-- PPU state
 	local ly = 0
 
 	local ret = {}
 
-	function ret.draw_tile(vram, tile, fb, x, y)
+	-- Draw tile with given palette (nil = transparent)
+	-- at given offset (can be out of bounds)
+	function ret.draw_tile(vram, tile, fb, x, y, c0, c1, c2, c3)
 		local tile_addr = 1 + tile * 0x10
 		local fb_addr = 1 + x + y * 160
-		for y = 0, 7 do
+		for ty = y, y + 7 do
 			local pxdata = tbl_expand[1+vram[tile_addr]] + 2 * tbl_expand[1+vram[tile_addr+1]]
-			for x = 0, 7 do
+			for tx = x, x + 7 do
+				local c
 				if pxdata >= 0xC000 then
-					fb[fb_addr] = bgp_3
+					c = c3
 					pxdata = pxdata - 0xC000
 				elseif pxdata >= 0x8000 then
-					fb[fb_addr] = bgp_2
+					c = c2
 					pxdata = pxdata - 0x8000
 				elseif pxdata >= 0x4000 then
-					fb[fb_addr] = bgp_1
+					c = c1
 					pxdata = pxdata - 0x4000
 				else
-					fb[fb_addr] = bgp_0
+					c = c0
+				end
+
+				if tx >= 0 and tx < 160 and ty >= 0 and ty <= 144 and c then
+					fb[fb_addr] = c
 				end
 				pxdata = pxdata * 4
 				fb_addr = fb_addr + 1
@@ -60,11 +65,42 @@ function ppu_init()
 		end
 	end
 
-	function ret.draw_tilemap(vram, fb)
+	function split_palette(reg)
+		local c0 = reg % 4
+		reg = (reg - c0) / 4
+		c1 = reg % 4
+		reg = (reg - c1) / 4
+		c2 = reg % 4
+		reg = (reg - c2) / 4
+		c3 = reg % 4
+		return c0, c1, c2, c3
+	end
+
+	function ret.draw_tilemap(vram, oam, fb)
+		local bgp_0, bgp_1, bgp_2, bgp_3 = split_palette(reg_bgp)
+
+		local vram_offset = 0x1801
+		if bitops.tbl_and[0x0801 + reg_lcdc] ~= 0 then
+			--vram_offset = 0x1C01
+		end
 		for y = 0, 17 do
 			for x = 0, 19 do
-				ret.draw_tile(vram, vram[0x1801 + x + y * 32], fb, x * 8, y * 8)
-				--ret.draw_tile(vram, x + y * 20, fb, x * 8, y * 8)
+				ret.draw_tile(vram, vram[vram_offset + x + y * 32], fb, x * 8, y * 8, bgp_0, bgp_1, bgp_2, bgp_3)
+			end
+		end
+
+		local obp0_0, obp0_1, obp0_2, obp0_3 = split_palette(reg_obp0)
+		local obp1_0, obp1_1, obp1_2, obp1_3 = split_palette(reg_obp1)
+
+		for oam_offset = 1, 0xA0, 4 do
+			local y, x = oam[oam_offset], oam[oam_offset+1]
+			if y > 0 and y < 160 and x > 0 and x < 160 then
+				local flags = oam[oam_offset+3]
+				if bitops.tbl_and[0x1001 + flags] == 0 then
+					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp0_1, obp0_2, obp0_3)
+				else
+					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp1_1, obp1_2, obp1_3)
+				end
 			end
 		end
 	end
@@ -93,15 +129,10 @@ function ppu_init()
 			reg_scy = value
 		elseif address == 0xFF47 then
 			reg_bgp = value
-
-			local bgp = reg_bgp
-			bgp_0 = bgp % 4
-			bgp = (bgp - bgp_0) / 4
-			bgp_1 = bgp % 4
-			bgp = (bgp - bgp_1) / 4
-			bgp_2 = bgp % 4
-			bgp = (bgp - bgp_2) / 4
-			bgp_3 = bgp % 4
+		elseif address == 0xFF48 then
+			reg_obp0 = value
+		elseif address == 0xFF49 then
+			reg_obp1 = value
 		else
 			warn(string.format("UNIMPL: PPU write %04x %02x", address, value))
 		end

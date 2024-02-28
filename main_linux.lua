@@ -1,5 +1,5 @@
 function warn(msg)
-	print(msg)
+	--print(msg)
 end
 
 dofile("mem.lua")
@@ -21,8 +21,8 @@ local palette_fg = {97, 90, 37, 30}
 local palette_bg = {107, 100, 47, 40}
 
 function draw_framebuffer(fb)
-	-- Move cursor to the top of the area
-	io.write("\027[" .. height/2 .. "F")
+	-- Hide cursor and move it to the top of the area
+	io.write("\027[?25l\027[" .. height/2 .. "F")
 
 	local idx = 1
 	for y = 0, height - 2, 2 do
@@ -36,7 +36,8 @@ function draw_framebuffer(fb)
 		io.write("\027[1E")
 	end
 
-	io.write("\027[0m")
+	-- Reset attributes and show the cursor
+	io.write("\027[0m\027[?25h")
 end
 
 function end_framebuffer()
@@ -67,7 +68,7 @@ else
 	return 1
 end
 local bitops = bitops_init()
-local ppu = ppu_init()
+local ppu = ppu_init(bitops)
 local mem = mem_init(bootrom, rom, ppu, bitops)
 local cpu = cpu_init(bitops, mem)
 
@@ -84,7 +85,7 @@ while true do
 		ppu.next_line(mem)
 	end
 
-	ppu.draw_tilemap(mem.vram, fb)
+	ppu.draw_tilemap(mem.vram, mem.oam, fb)
 	draw_framebuffer(fb)
 
 	for y = 144, 155 do
