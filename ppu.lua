@@ -84,13 +84,28 @@ function ppu_init(bitops)
 			vram_offset = 0x1C01
 		end
 		local signed_addr_mode = bitops.tbl_and[0x1001 + reg_lcdc] == 0
-		for y = 0, 17 do
-			for x = 0, 19 do
-				local tile = vram[vram_offset + x + y * 32]
+		local tile_x_start, tile_y = math.floor(reg_scx / 8), math.floor(reg_scy / 8)
+		local x, y = -(reg_scx % 8), -(reg_scy % 8)
+		for y = y, y + 144, 8 do
+			local tile_x = tile_x_start
+			for x = x, x + 168, 8 do
+				local tile = vram[vram_offset + tile_x + tile_y * 32]
 				if signed_addr_mode and tile < 128 then
 					tile = tile + 256
 				end
-				ret.draw_tile(vram, tile, fb, x * 8, y * 8, bgp_0, bgp_1, bgp_2, bgp_3)
+				ret.draw_tile(vram, tile, fb, x, y, bgp_0, bgp_1, bgp_2, bgp_3)
+
+				if tile_x == 31 then
+					tile_x = 0 -- x wraparound
+				else
+					tile_x = tile_x + 1
+				end
+			end
+
+			if tile_y == 31 then
+				tile_y = 0 -- y wraparound
+			else
+				tile_y = tile_y + 1
 			end
 		end
 
@@ -124,6 +139,8 @@ function ppu_init(bitops)
 			return reg_lcdc
 		elseif address == 0xFF42 then
 			return reg_scy
+		elseif address == 0xFF43 then
+			return reg_scx
 		elseif address == 0xFF44 then
 			return ly
 		elseif address == 0xFF47 then
@@ -140,6 +157,8 @@ function ppu_init(bitops)
 			reg_lcdc = value
 		elseif address == 0xFF42 then
 			reg_scy = value
+		elseif address == 0xFF43 then
+			reg_scx = value
 		elseif address == 0xFF47 then
 			reg_bgp = value
 		elseif address == 0xFF48 then
