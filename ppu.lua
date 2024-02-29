@@ -86,9 +86,9 @@ function ppu_init(bitops)
 		local signed_addr_mode = bitops.tbl_and[0x1001 + reg_lcdc] == 0
 		local tile_x_start, tile_y = math.floor(reg_scx / 8), math.floor(reg_scy / 8)
 		local x, y = -(reg_scx % 8), -(reg_scy % 8)
-		for y = y, y + 144, 8 do
+		for y = y, 144, 8 do
 			local tile_x = tile_x_start
-			for x = x, x + 168, 8 do
+			for x = x, 168, 8 do
 				local tile = vram[vram_offset + tile_x + tile_y * 32]
 				if signed_addr_mode and tile < 128 then
 					tile = tile + 256
