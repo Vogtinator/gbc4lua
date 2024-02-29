@@ -12,6 +12,8 @@ function mem_init(bootrom, rom, ppu, bitops)
 
 	-- Selected rom bank minus one
 	local rom_bank = 0
+	-- Whether ext ram is enabled and the selected ext ram bank
+	local extram_enabled, extram_bank = false, 0
 
 	local ret = {}
 
@@ -35,6 +37,11 @@ function mem_init(bootrom, rom, ppu, bitops)
 	ret.oam = oam
 	for i = 1, 0xA0 do
 		oam[i] = 0
+	end
+
+	local extram = {}
+	for i = 1, 0x8000 do
+		extram[i] = 0
 	end
 
 	if rom[1+0x147] > 3 then
@@ -93,6 +100,10 @@ function mem_init(bootrom, rom, ppu, bitops)
 			return vram[address - 0x7FFF]
 		end
 
+		if address < 0xC000 and extram_enabled then
+			return extram[address - 0x9FFF + extram_bank * 0x2000]
+		end
+
 		if address >= 0xC000 and address < 0xE000 then
 			return wram[address - 0xBFFF]
 		end
@@ -127,6 +138,11 @@ function mem_init(bootrom, rom, ppu, bitops)
 	function ret.write_byte(address, value)
 		--print(string.format("%04x <- %02x", address, value))
 
+		if address < 0x2000 then
+			extram_enabled = bitops.tbl_and[0x0F01 + value] == 0x0A
+			return
+		end
+
 		if address >= 0x2000 and address < 0x4000 then
 			if value == 0 then
 				rom_bank = 0
@@ -138,8 +154,18 @@ function mem_init(bootrom, rom, ppu, bitops)
 			return
 		end
 
+		if address >= 0x4000 and address < 0x6000 then
+			extram_bank = bitops.tbl_and[0x0301 + value]
+			return
+		end
+
 		if address >= 0x8000 and address < 0xA000 then
 			vram[address - 0x7FFF] = value
+			return
+		end
+
+		if address < 0xC000 and extram_enabled then
+			extram[address - 0x9FFF + extram_bank * 0x2000] = value
 			return
 		end
 
