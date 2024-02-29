@@ -94,17 +94,25 @@ function ppu_init(bitops)
 			end
 		end
 
+		local mode8x16 = bitops.tbl_and[0x0401 + reg_lcdc] ~= 0
+
 		local obp0_0, obp0_1, obp0_2, obp0_3 = split_palette(reg_obp0)
 		local obp1_0, obp1_1, obp1_2, obp1_3 = split_palette(reg_obp1)
 
 		for oam_offset = 1, 0xA0, 4 do
 			local y, x = oam[oam_offset], oam[oam_offset+1]
-			if y > 0 and y < 160 and x > 0 and x < 160 then
+			if y > 0 and y < 160 and x > 0 and x < 168 then
 				local flags = oam[oam_offset+3]
 				if bitops.tbl_and[0x1001 + flags] == 0 then
 					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp0_1, obp0_2, obp0_3)
 				else
 					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp1_1, obp1_2, obp1_3)
+				end
+
+				if mode8x16 then
+					ret.draw_tile(vram, oam[oam_offset+2]+1, fb, x - 8, y - 8, nil, obp0_1, obp0_2, obp0_3)
+				else
+					ret.draw_tile(vram, oam[oam_offset+2]+1, fb, x - 8, y - 8, nil, obp1_1, obp1_2, obp1_3)
 				end
 			end
 		end
