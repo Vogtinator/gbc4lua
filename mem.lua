@@ -207,6 +207,10 @@ function mem_init(bootrom, rom, ppu, bitops)
 			return
 		end
 
+		if address >= 0xFF10 and address < 0xFF27 then
+			return -- Just ignore audio
+		end
+
 		if address >= 0xFF40 and address < 0xFF70 then
 			if address == 0xFF46 then
 				-- OAM DMA. Recognize and speed up wait loops here?
