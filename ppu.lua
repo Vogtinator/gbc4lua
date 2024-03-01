@@ -26,6 +26,7 @@ function ppu_init(bitops)
 	local reg_lcdc, reg_scx, reg_scy, reg_bgp = 0, 0, 0, 0
 	local reg_obp0, reg_obp1 = 0, 0
 	local reg_stat, reg_lyc = 0, 0
+	local reg_wx, reg_wy = 0, 0
 
 	-- PPU state
 	local ly, mode = 0, 1
@@ -132,6 +133,41 @@ function ppu_init(bitops)
 				end
 			end
 		end
+
+		-- Draw the window
+		if bitops.tbl_and[0x2001 + reg_lcdc] == 0 then
+			return -- window disabled
+		end
+
+		vram_offset = 0x1801
+		if bitops.tbl_and[0x4001 + reg_lcdc] ~= 0 then
+			vram_offset = 0x1C01
+		end
+
+		local tile_y = 0
+		x, y = reg_wx - 7, reg_wy
+		for y = y, 144, 8 do
+			local tile_x = 0
+			for x = x, 168, 8 do
+				local tile = vram[vram_offset + tile_x + tile_y * 32]
+				if signed_addr_mode and tile < 128 then
+					tile = tile + 256
+				end
+				ret.draw_tile(vram, tile, fb, x, y, bgp_0, bgp_1, bgp_2, bgp_3)
+
+				if tile_x == 31 then
+					tile_x = 0 -- x wraparound
+				else
+					tile_x = tile_x + 1
+				end
+			end
+
+			if tile_y == 31 then
+				tile_y = 0 -- y wraparound
+			else
+				tile_y = tile_y + 1
+			end
+		end
 	end
 
 	function ret.read_byte(address)
@@ -152,6 +188,10 @@ function ppu_init(bitops)
 			return reg_obp0
 		elseif address == 0xFF49 then
 			return reg_obp1
+		elseif address == 0xFF4A then
+			return reg_wy
+		elseif address == 0xFF4B then
+			return reg_wx
 		else
 			warn(string.format("UNIMPL: PPU read %04x", address))
 			return 0
@@ -179,6 +219,10 @@ function ppu_init(bitops)
 			reg_obp0 = value
 		elseif address == 0xFF49 then
 			reg_obp1 = value
+		elseif address == 0xFF4A then
+			reg_wy = value
+		elseif address == 0xFF4B then
+			reg_wx = value
 		else
 			warn(string.format("UNIMPL: PPU write %04x %02x", address, value))
 		end
