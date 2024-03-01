@@ -68,7 +68,7 @@ function ppu_init(bitops)
 				end
 
 				if tx >= 0 and tx < 160 and ty >= 0 and ty <= 144 and c then
-					fb[ty * 160 + tx] = c
+					fb[1 + ty * 160 + tx] = c
 				end
 				pxdata = pxdata * 4
 			end
