@@ -25,7 +25,7 @@ function ppu_init(bitops)
 	-- PPU registers
 	local reg_lcdc, reg_scx, reg_scy, reg_bgp = 0, 0, 0, 0
 	local reg_obp0, reg_obp1 = 0, 0
-	local reg_stat = 0
+	local reg_stat, reg_lyc = 0, 0
 
 	-- PPU state
 	local ly, mode = 0, 1
@@ -171,6 +171,8 @@ function ppu_init(bitops)
 			reg_scy = value
 		elseif address == 0xFF43 then
 			reg_scx = value
+		elseif address == 0xFF45 then
+			reg_lyc = value
 		elseif address == 0xFF47 then
 			reg_bgp = value
 		elseif address == 0xFF48 then
@@ -206,6 +208,13 @@ function ppu_init(bitops)
 			ly = 0
 		else
 			ly = ly + 1
+		end
+
+		if ly == reg_lyc then
+			mode = mode + 4 -- LYC == LY bit in STAT
+			if reg_stat >= 0x40 then
+				mem.raise_irq(2)
+			end
 		end
 	end
 
