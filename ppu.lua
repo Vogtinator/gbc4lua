@@ -25,9 +25,10 @@ function ppu_init(bitops)
 	-- PPU registers
 	local reg_lcdc, reg_scx, reg_scy, reg_bgp = 0, 0, 0, 0
 	local reg_obp0, reg_obp1 = 0, 0
+	local reg_stat = 0
 
 	-- PPU state
-	local ly = 0
+	local ly, mode = 0, 1
 
 	local ret = {}
 
@@ -137,6 +138,8 @@ function ppu_init(bitops)
 		--print(string.format("PPU read %04x", address))
 		if address == 0xFF40 then
 			return reg_lcdc
+		elseif address == 0xFF41 then
+			return reg_stat + mode
 		elseif address == 0xFF42 then
 			return reg_scy
 		elseif address == 0xFF43 then
@@ -145,6 +148,10 @@ function ppu_init(bitops)
 			return ly
 		elseif address == 0xFF47 then
 			return reg_bgp
+		elseif address == 0xFF48 then
+			return reg_obp0
+		elseif address == 0xFF49 then
+			return reg_obp1
 		else
 			warn(string.format("UNIMPL: PPU read %04x", address))
 			return 0
@@ -155,6 +162,11 @@ function ppu_init(bitops)
 		--print(string.format("PPU write %04x %02x", address, value))
 		if address == 0xFF40 then
 			reg_lcdc = value
+		elseif address == 0xFF41 then
+			reg_stat = bitops.tbl_and[0x7801 + value]
+			if reg_stat ~= 0 then
+				warn(string.format("UNIMPL: STAT value %02x", reg_stat))
+			end
 		elseif address == 0xFF42 then
 			reg_scy = value
 		elseif address == 0xFF43 then
@@ -180,6 +192,12 @@ function ppu_init(bitops)
 		if ly == 144 then
 			-- Begin of vblank
 			mem.raise_irq(1)
+		end
+
+		if ly >= 144 then
+			mode = 1
+		else
+			mode = 3
 		end
 
 		if ly == 153 then
