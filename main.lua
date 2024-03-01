@@ -54,12 +54,10 @@ end
 local palette = {1, 0.8, 0.4, 0.1}
 
 function love.update(dt)
-	for y = 0, 143 do
+	for y = 0, 155 do
 		cpu["run_dbg"](114)
-		ppu.next_line(mem)
+		ppu.next_line(mem, fb)
 	end
-
-	ppu.draw_tilemap(mem.vram, mem.oam, fb)
 
 	local idx = 1
 	for y = 0, height*2-1, 2 do
@@ -72,11 +70,6 @@ function love.update(dt)
 		end
 	end
 	img:replacePixels(imgdata)
-
-	for y = 144, 155 do
-		cpu["run_dbg"](114)
-		ppu.next_line(mem)
-	end
 end
 
 function love.keypressed(key, scancode, isrepeat)
