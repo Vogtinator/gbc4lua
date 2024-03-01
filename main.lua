@@ -82,9 +82,9 @@ function love.keypressed(key, scancode, isrepeat)
 	elseif key == "d" then
 		mem.joyp_press(mem.btn_right, 0)
 	elseif key == "j" then
-		mem.joyp_press(0, mem.btn_a)
-	elseif key == "k" then
 		mem.joyp_press(0, mem.btn_b)
+	elseif key == "k" then
+		mem.joyp_press(0, mem.btn_a)
 	elseif key == "return" then
 		mem.joyp_press(0, mem.btn_start)
 	elseif key == "space" then
@@ -102,9 +102,9 @@ function love.keyreleased(key, scancode)
 	elseif key == "d" then
 		mem.joyp_release(mem.btn_right, 0)
 	elseif key == "j" then
-		mem.joyp_release(0, mem.btn_a)
-	elseif key == "k" then
 		mem.joyp_release(0, mem.btn_b)
+	elseif key == "k" then
+		mem.joyp_release(0, mem.btn_a)
 	elseif key == "return" then
 		mem.joyp_release(0, mem.btn_start)
 	elseif key == "space" then
