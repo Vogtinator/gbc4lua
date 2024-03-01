@@ -10,8 +10,9 @@ function mem_init(bootrom, rom, ppu, bitops)
 	-- Lower nibble of ^ depending on selected column
 	local joyp_arrows, joyp_action = 0xF, 0xF
 
-	-- Selected rom bank minus one
-	local rom_bank = 0
+	-- Offset applied when accessing ROM at 0x4000.
+	-- Can be negative for true bank 0.
+	local rom_bank_offset = 0
 	-- Whether ext ram is enabled and the selected ext ram bank
 	local extram_enabled, extram_bank = false, 0
 
@@ -44,8 +45,10 @@ function mem_init(bootrom, rom, ppu, bitops)
 		extram[i] = 0
 	end
 
-	if rom[1+0x147] > 3 then
-		warn(string.format("Cartridge type 0x%02x not supported", rom[1+0x147]))
+	local cart_type = rom[1+0x147]
+
+	if cart_type > 3 and cart_type ~= 0x1b then
+		warn(string.format("Cartridge type 0x%02x not supported", cart_type))
 	end
 
 	-- Key constants for joyp_press and joyp_release
@@ -93,7 +96,7 @@ function mem_init(bootrom, rom, ppu, bitops)
 		end
 
 		if address < 0x8000 then
-			return rom[1 + address + rom_bank * 0x4000]
+			return rom[1 + address + rom_bank_offset]
 		end
 
 		if address < 0xA000 then
@@ -140,26 +143,29 @@ function mem_init(bootrom, rom, ppu, bitops)
 	local sb = 0
 
 	function ret.write_byte(address, value)
-		--print(string.format("%04x <- %02x", address, value))
-
 		if address < 0x2000 then
 			extram_enabled = bitops.tbl_and[0x0F01 + value] == 0x0A
 			return
 		end
 
-		if address >= 0x2000 and address < 0x4000 then
-			if value == 0 then
-				rom_bank = 0
-			elseif value < 0x20 then
-				rom_bank = value - 1
+		if address >= 0x2000 and address < 0x3000 then
+			if cart_type <= 3 then
+				if value == 0 then
+					rom_bank_offset = 0
+				elseif value < 0x20 then
+					rom_bank_offset = (value - 1) * 0x4000
+				else
+					print("UNIMPL: High rom bank bits")
+				end
 			else
-				print("UNIMPL: High rom bank bits")
+				assert(cart_type == 0x1b)
+				rom_bank_offset = (value - 1) * 0x4000
 			end
 			return
 		end
 
 		if address >= 0x4000 and address < 0x6000 then
-			extram_bank = bitops.tbl_and[0x0301 + value]
+			extram_bank = bitops.tbl_and[0x0F01 + value]
 			return
 		end
 
@@ -258,7 +264,7 @@ function mem_init(bootrom, rom, ppu, bitops)
 
 	function ret.get_rom_bank(pc)
 		if pc >= 0x4000 then
-			return rom_bank + 1
+			return (rom_bank_offset + 0x4000) / 0x4000
 		else
 			return 0
 		end
