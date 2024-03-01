@@ -116,6 +116,10 @@ function mem_init(bootrom, rom, ppu, bitops)
 			return reg_joyp
 		end
 
+		if address >= 0xFF10 and address < 0xFF40 then
+			return 0 -- Just ignore audio
+		end
+
 		if address >= 0xFF40 and address < 0xFF70 then
 			return ppu_read_byte(address)
 		end
@@ -207,7 +211,7 @@ function mem_init(bootrom, rom, ppu, bitops)
 			return
 		end
 
-		if address >= 0xFF10 and address < 0xFF27 then
+		if address >= 0xFF10 and address < 0xFF40 then
 			return -- Just ignore audio
 		end
 
