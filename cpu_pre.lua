@@ -586,7 +586,12 @@ function cpu_init(bitops, mem)
 	end
 
 	opcode_map[0xE8] = function(pc, cycles) -- add sp, imm8 (4 cycles)
-		sp = sp + read_byte(pc + 1)
+		local imm = read_byte(pc + 1) -- signed
+		if imm < 128 then
+			sp = sp + imm
+		else
+			sp = sp - 256 + imm
+		end
 		flag_zero = 0
 		if sp >= 0x10000 then
 			flag_carry = 1
@@ -688,7 +693,13 @@ function cpu_init(bitops, mem)
 	end
 
 	opcode_map[0xF8] = function(pc, cycles) -- ld hl, sp + imm8 (3 cycles)
-		local hl = sp + read_byte(pc + 1)
+		local imm = read_byte(pc + 1) -- signed
+		local hl = sp
+		if imm < 128 then
+			hl = hl + imm
+		else
+			hl = hl + 256 - imm
+		end
 		flag_zero = 0
 		if hl >= 0x10000 then
 			flag_carry = 1
