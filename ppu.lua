@@ -81,6 +81,7 @@ function ppu_init(bitops)
 	function ret.draw_tilemap(vram, oam, fb)
 		local bgp_0, bgp_1, bgp_2, bgp_3 = split_palette(reg_bgp)
 
+		-- Draw the background
 		local vram_offset = 0x1801
 		if bitops.tbl_and[0x0801 + reg_lcdc] ~= 0 then
 			vram_offset = 0x1C01
@@ -111,6 +112,40 @@ function ppu_init(bitops)
 			end
 		end
 
+		-- Draw the window
+		if bitops.tbl_and[0x2001 + reg_lcdc] ~= 0 then
+			vram_offset = 0x1801
+			if bitops.tbl_and[0x4001 + reg_lcdc] ~= 0 then
+				vram_offset = 0x1C01
+			end
+
+			local tile_y = 0
+			x, y = reg_wx - 7, reg_wy
+			for y = y, 144, 8 do
+				local tile_x = 0
+				for x = x, 168, 8 do
+					local tile = vram[vram_offset + tile_x + tile_y * 32]
+					if signed_addr_mode and tile < 128 then
+						tile = tile + 256
+					end
+					ret.draw_tile(vram, tile, fb, x, y, bgp_0, bgp_1, bgp_2, bgp_3)
+
+					if tile_x == 31 then
+						tile_x = 0 -- x wraparound
+					else
+						tile_x = tile_x + 1
+					end
+				end
+
+				if tile_y == 31 then
+					tile_y = 0 -- y wraparound
+				else
+					tile_y = tile_y + 1
+				end
+			end
+		end
+
+		-- Draw objects
 		local mode8x16 = bitops.tbl_and[0x0401 + reg_lcdc] ~= 0
 
 		local obp0_0, obp0_1, obp0_2, obp0_3 = split_palette(reg_obp0)
@@ -131,41 +166,6 @@ function ppu_init(bitops)
 				else
 					ret.draw_tile(vram, oam[oam_offset+2]+1, fb, x - 8, y - 8, nil, obp1_1, obp1_2, obp1_3)
 				end
-			end
-		end
-
-		-- Draw the window
-		if bitops.tbl_and[0x2001 + reg_lcdc] == 0 then
-			return -- window disabled
-		end
-
-		vram_offset = 0x1801
-		if bitops.tbl_and[0x4001 + reg_lcdc] ~= 0 then
-			vram_offset = 0x1C01
-		end
-
-		local tile_y = 0
-		x, y = reg_wx - 7, reg_wy
-		for y = y, 144, 8 do
-			local tile_x = 0
-			for x = x, 168, 8 do
-				local tile = vram[vram_offset + tile_x + tile_y * 32]
-				if signed_addr_mode and tile < 128 then
-					tile = tile + 256
-				end
-				ret.draw_tile(vram, tile, fb, x, y, bgp_0, bgp_1, bgp_2, bgp_3)
-
-				if tile_x == 31 then
-					tile_x = 0 -- x wraparound
-				else
-					tile_x = tile_x + 1
-				end
-			end
-
-			if tile_y == 31 then
-				tile_y = 0 -- y wraparound
-			else
-				tile_y = tile_y + 1
 			end
 		end
 	end
