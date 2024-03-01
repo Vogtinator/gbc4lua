@@ -164,20 +164,20 @@ function ppu_init(bitops)
 		for oam_offset = 1, 0xA0, 4 do
 			local y, x = oam[oam_offset], oam[oam_offset+1]
 			if y > 0 and y < 160 and x > 0 and x < 168 then
-				local flags = oam[oam_offset+3]
+				local tile, flags = oam[oam_offset+2], oam[oam_offset+3]
 				local mirror_h, mirror_v = bitops.tbl_and[0x2001 + flags] ~= 0, bitops.tbl_and[0x4001 + flags] ~= 0
 				local use_obp0 = bitops.tbl_and[0x1001 + flags] == 0
 				if use_obp0 then
-					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp0_1, obp0_2, obp0_3, mirror_h, mirror_v)
+					ret.draw_tile(vram, tile, fb, x - 8, y - 16, nil, obp0_1, obp0_2, obp0_3, mirror_h, mirror_v)
 				else
-					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp1_1, obp1_2, obp1_3, mirror_h, mirror_v)
+					ret.draw_tile(vram, tile, fb, x - 8, y - 16, nil, obp1_1, obp1_2, obp1_3, mirror_h, mirror_v)
 				end
 
 				if mode8x16 then
 					if use_obp0 then
-						ret.draw_tile(vram, oam[oam_offset+2]+1, fb, x - 8, y - 8, nil, obp0_1, obp0_2, obp0_3, mirror_h, mirror_v)
+						ret.draw_tile(vram, tile + 1, fb, x - 8, y - 8, nil, obp0_1, obp0_2, obp0_3, mirror_h, mirror_v)
 					else
-						ret.draw_tile(vram, oam[oam_offset+2]+1, fb, x - 8, y - 8, nil, obp1_1, obp1_2, obp1_3, mirror_h, mirror_v)
+						ret.draw_tile(vram, tile + 1, fb, x - 8, y - 8, nil, obp1_1, obp1_2, obp1_3, mirror_h, mirror_v)
 					end
 				end
 			end
