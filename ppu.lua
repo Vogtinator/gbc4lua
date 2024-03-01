@@ -195,9 +195,9 @@ function ppu_init(bitops)
 		end
 
 		if ly >= 144 then
-			mode = 1
+			mode = 1 -- vblank
 		else
-			mode = 3
+			mode = 0 -- hblank. mode 2 and 3 not exposed.
 		end
 
 		if ly == 153 then
