@@ -956,7 +956,7 @@ function cpu_init(bitops, mem)
 			local opc = read_byte(pc_l)
 			local opc_impl = opcode_map[opc]
 			-- For tracing:
-			--pc = pc_l; print(cpu.state_str():
+			--pc = pc_l; print(cpu.state_str());
 			if opc_impl == nil or opc == 0xCB and opcode_map_cb[read_byte(pc_l+1)] == nil then
 				pc = pc_l; print(cpu.state_str())
 				assert(false, string.format("UNIMPL: opcode %02x", opc))
