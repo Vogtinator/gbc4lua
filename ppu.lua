@@ -35,12 +35,24 @@ function ppu_init(bitops)
 
 	-- Draw tile with given palette (nil = transparent)
 	-- at given offset (can be out of bounds)
-	function ret.draw_tile(vram, tile, fb, x, y, c0, c1, c2, c3)
+	function ret.draw_tile(vram, tile, fb, x, y, c0, c1, c2, c3, mirror_h, mirror_v)
 		local tile_addr = 1 + tile * 0x10
-		local fb_addr = 1 + x + y * 160
-		for ty = y, y + 7 do
+		local y_start, y_end, y_step
+		if mirror_v then
+			y_start, y_end, y_step = y + 1, y, -1
+		else
+			y_start, y_end, y_step = y, y + 7, 1
+		end
+		local x_start, x_end, x_step
+		if mirror_h then
+			x_start, x_end, x_step = x + 7, x, -1
+		else
+			x_start, x_end, x_step = x, x + 7, 1
+		end
+
+		for ty = y_start, y_end, y_step do
 			local pxdata = tbl_expand[1+vram[tile_addr]] + 2 * tbl_expand[1+vram[tile_addr+1]]
-			for tx = x, x + 7 do
+			for tx = x_start, x_end, x_step do
 				local c
 				if pxdata >= 0xC000 then
 					c = c3
@@ -56,14 +68,12 @@ function ppu_init(bitops)
 				end
 
 				if tx >= 0 and tx < 160 and ty >= 0 and ty <= 144 and c then
-					fb[fb_addr] = c
+					fb[ty * 160 + tx] = c
 				end
 				pxdata = pxdata * 4
-				fb_addr = fb_addr + 1
 			end
 
 			tile_addr = tile_addr + 2
-			fb_addr = fb_addr + 160 - 8
 		end
 	end
 
@@ -155,16 +165,17 @@ function ppu_init(bitops)
 			local y, x = oam[oam_offset], oam[oam_offset+1]
 			if y > 0 and y < 160 and x > 0 and x < 168 then
 				local flags = oam[oam_offset+3]
+				local mirror_h, mirror_v = bitops.tbl_and[0x2001 + flags] ~= 0, bitops.tbl_and[0x4001 + flags] ~= 0
 				if bitops.tbl_and[0x1001 + flags] == 0 then
-					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp0_1, obp0_2, obp0_3)
+					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp0_1, obp0_2, obp0_3, mirror_h, mirror_v)
 				else
-					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp1_1, obp1_2, obp1_3)
+					ret.draw_tile(vram, oam[oam_offset+2], fb, x - 8, y - 16, nil, obp1_1, obp1_2, obp1_3, mirror_h, mirror_v)
 				end
 
 				if mode8x16 then
-					ret.draw_tile(vram, oam[oam_offset+2]+1, fb, x - 8, y - 8, nil, obp0_1, obp0_2, obp0_3)
+					ret.draw_tile(vram, oam[oam_offset+2]+1, fb, x - 8, y - 8, nil, obp0_1, obp0_2, obp0_3, mirror_h, mirror_v)
 				else
-					ret.draw_tile(vram, oam[oam_offset+2]+1, fb, x - 8, y - 8, nil, obp1_1, obp1_2, obp1_3)
+					ret.draw_tile(vram, oam[oam_offset+2]+1, fb, x - 8, y - 8, nil, obp1_1, obp1_2, obp1_3, mirror_h, mirror_v)
 				end
 			end
 		end
@@ -182,6 +193,8 @@ function ppu_init(bitops)
 			return reg_scx
 		elseif address == 0xFF44 then
 			return ly
+		elseif address == 0xFF45 then
+			return reg_lyc
 		elseif address == 0xFF47 then
 			return reg_bgp
 		elseif address == 0xFF48 then
