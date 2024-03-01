@@ -476,24 +476,14 @@ function cpu_init(bitops, mem)
 	opcode_map[0xC9] = function(pc, cycles) -- ret (4 cycles)
 		local sp_l = sp
 		local tgt = read_word(sp_l)
-		if sp_l < 0xFFFE then
-			sp = sp_l + 2
-		else
-			sp = sp_l - 0xFFFE
-		end
-
+		sp = sp_l + 2
 		return tgt, cycles - 4
 	end
 
 	opcode_map[0xCD] = function(pc, cycles) -- call imm16 (6 cycles)
 		local tgt = read_word(pc + 1)
 		sp = sp - 2
-		if sp < 0 then
-			sp = sp + 0x10000
-		end
-
 		write_word(sp, pc + 3)
-
 		return tgt, cycles - 6
 	end
 
@@ -538,11 +528,7 @@ function cpu_init(bitops, mem)
 	opcode_map[0xD9] = function(pc, cycles) -- reti (4 cycles)
 		local sp_l = sp
 		local tgt = read_word(sp_l)
-		if sp_l < 0xFFFE then
-			sp = sp_l + 2
-		else
-			sp = sp_l - 0xFFFE
-		end
+		sp = sp_l + 2
 		flag_ime = true
 		return tgt, cycles - 4
 	end

@@ -468,9 +468,6 @@ for opc, insn, cond in [(0, "nz", "flag_zero == 0"), (1, "z", "flag_zero == 1"),
 		if {cond} then
 			local tgt = read_word(pc + 1)
 			sp = sp - 2
-			if sp < 0 then
-				sp = sp + 0x10000
-			end
 			write_word(sp, pc + 3)
 			return tgt, cycles - 6
 		else
@@ -494,9 +491,6 @@ for opc, insn, cond in [(0, "nz", "flag_zero == 0"), (1, "z", "flag_zero == 1"),
 for i in range(0, 8):
 	opcode(0b11000111 | i << 3, f"""rst ${i} (4 cycles)
 		sp = sp - 2
-		if sp < 0 then
-			sp = sp + 0x10000
-		end
 		write_word(sp, pc + 1)
 		return {i*8}, cycles - 4""")
 
