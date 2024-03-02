@@ -77,14 +77,14 @@ function ppu_init(bitops)
 		end
 	end
 
-	function split_palette(reg)
+	local function split_palette(reg)
 		local c0 = reg % 4
 		reg = (reg - c0) / 4
-		c1 = reg % 4
+		local c1 = reg % 4
 		reg = (reg - c1) / 4
-		c2 = reg % 4
+		local c2 = reg % 4
 		reg = (reg - c2) / 4
-		c3 = reg % 4
+		local c3 = reg % 4
 		return c0, c1, c2, c3
 	end
 

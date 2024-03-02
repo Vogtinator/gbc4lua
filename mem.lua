@@ -61,7 +61,7 @@ function mem_init(bootrom, rom, ppu, bitops)
 	ret.btn_select, ret.btn_up = 4, 4
 	ret.btn_start, ret.btn_down = 8, 8
 
-	function update_joyp()
+	local function update_joyp()
 		-- Keep only matrix select lines
 		reg_joyp = bitops.tbl_and[0x3001 + reg_joyp]
 
@@ -164,7 +164,7 @@ function mem_init(bootrom, rom, ppu, bitops)
 				elseif value < 0x20 then
 					rom_bank_offset = (value - 1) * 0x4000
 				else
-					print("UNIMPL: High rom bank bits")
+					warn("UNIMPL: High rom bank bits")
 				end
 			else
 				assert(cart_type == 0x1b)

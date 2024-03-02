@@ -896,7 +896,7 @@ function cpu_init(bitops, mem)
 		return pc + 2, cycles - 4
 	end
 
-	function check_interrupts(pc, cycles)
+	local function check_interrupts(pc, cycles)
 		if not flag_ime then
 			return pc, cycles
 		end

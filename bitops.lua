@@ -38,7 +38,7 @@ function bitops_init()
 	end
 	
 	-- Self tests (and examples)
-	function op(tbl, a, b) return tbl[1 + a * 0x100 + b] end
+	local function op(tbl, a, b) return tbl[1 + a * 0x100 + b] end
 
 	assert(op(ret.tbl_and, 0xFF, 0x00) == 0x00)
 	assert(op(ret.tbl_and, 0x00, 0xFF) == 0x00)
