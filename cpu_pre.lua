@@ -913,11 +913,12 @@ function cpu_init(bitops, mem)
 	end
 
 	cpu.run = function(cycles)
+		local opcode_map_l, read_byte_l = opcode_map, read_byte
 		local pc_l = pc
 		pc_l, cycles = check_interrupts(pc_l, cycles)
 		while cycles > 0 do
-			local opc = read_byte(pc_l)
-			pc_l, cycles = opcode_map[opc](pc_l, cycles)
+			local opc = read_byte_l(pc_l)
+			pc_l, cycles = opcode_map_l[opc](pc_l, cycles)
 		end
 		pc = pc_l
 		return cycles
