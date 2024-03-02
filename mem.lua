@@ -16,6 +16,10 @@ function mem_init(bootrom, rom, ppu, bitops)
 	-- Whether ext ram is enabled and the selected ext ram bank
 	local extram_enabled, extram_bank = false, 0
 
+	-- Fake timer for the DIV register. Incremented on every non-ROM read,
+	-- only meant to serve as source of randomness.
+	local reg_fake_timer = 0
+
 	local ret = {}
 
 	local wram = {}
@@ -105,6 +109,11 @@ function mem_init(bootrom, rom, ppu, bitops)
 
 		if address < 0xC000 and extram_enabled then
 			return extram[address - 0x9FFF + extram_bank * 0x2000]
+		end
+
+		reg_fake_timer = reg_fake_timer + 1
+		if address == 0xFF04 then
+			return reg_fake_timer % 0x100
 		end
 
 		if address >= 0xC000 and address < 0xE000 then
