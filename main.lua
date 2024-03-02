@@ -54,8 +54,8 @@ end
 local palette = {1, 0.8, 0.4, 0.1}
 
 function love.update(dt)
-	for y = 0, 155 do
-		cpu["run_dbg"](114)
+	for y = 1, 154 do
+		cpu.run_dbg(114)
 		ppu.next_line(mem, fb)
 	end
 

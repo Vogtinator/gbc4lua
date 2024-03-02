@@ -80,18 +80,12 @@ for idx = 1, width * height do
 end
 
 while true do
-	for y = 0, 143 do
-		cpu["run_dbg"](114)
-		ppu.next_line(mem)
+	for y = 1, 154 do
+		cpu.run_dbg(114)
+		ppu.next_line(mem, fb)
 	end
 
-	ppu.draw_tilemap(mem.vram, mem.oam, fb)
 	draw_framebuffer(fb)
-
-	for y = 144, 155 do
-		cpu["run_dbg"](114)
-		ppu.next_line(mem)
-	end
 end
 
 end_framebuffer()
