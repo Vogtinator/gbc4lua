@@ -50,3 +50,4 @@ function on.timer()
 end
 
 timer.start(0.05)
+collectgarbage()

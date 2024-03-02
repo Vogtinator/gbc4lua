@@ -50,8 +50,10 @@ function ppu_init(bitops)
 			x_start, x_end, x_step = x, x + 7, 1
 		end
 
+		local tbl_expand_l = tbl_expand
+
 		for ty = y_start, y_end, y_step do
-			local pxdata = tbl_expand[1+vram[tile_addr]] + 2 * tbl_expand[1+vram[tile_addr+1]]
+			local pxdata = tbl_expand_l[1+vram[tile_addr]] + 2 * tbl_expand_l[1+vram[tile_addr+1]]
 			for tx = x_start, x_end, x_step do
 				local c
 				if pxdata >= 0xC000 then
