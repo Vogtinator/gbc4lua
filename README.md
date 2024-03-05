@@ -8,12 +8,20 @@ make
 love . tetris.gb
 ```
 
+Controls:
+
+Arrows: WASD  
+A/B: J/K  
+Start/Select: Return/Space
+
 How to build for Nspire:
 
 ```
 <git clone of Ndless>/ndless/src/tools/LuaBin/luabin tetris.gb - rom | sed 's/&quot;/"/g' > rom.lua
 make gbc4lua.tns
 ```
+
+Minimum OS version is technically 3.1, but until 3.6 (?) the OS just crashes immediately on open.
 
 Not implemented
 -
@@ -28,3 +36,20 @@ Not implemented
 * Cycle accurate memory access: Instruction cycles are tracked, but all accesses triggered by an instruction appear to happen within the same cycle. As the timer is not implemented this should not be noticable.
 * Cycle accurate interrupts: The CPU only checks for interrupts every line.
 * CPU flags for BCD: The N and H flags are not set by instructions other than `pop af`. This will lead to weird score calculations and more.
+
+TODO
+-
+* Input handling in main_nspire.lua
+* Save/load sram contents to variables
+* Optimize! For now most parts are not optimized, especially tile/object drawing and blitting to the screen. The code could benefit from loop unrolling and inlining as well.
+
+Writing fast Lua code
+-
+
+The Lua language has various traps which slow code down and need to be avoided to get code that's just slow instead of abysmally slow:
+
+* Use locals and function parameters if possible. Access to global variables does a table lookup, access to upvalues is a GETUPVALUE for each read and SETUPVALUE for each write.
+* Perform obvious simplifications like constant folding and avoiding redundant reads/writes. There is no optimization performed by the interpreter.
+* Avoid table lookups. Cache them if possible, e.g. outside a loop or even outside of a function.
+* Unroll loops
+* Avoid accessing tables at [0] if not needed. The array part is `tbl[1]`-`tbl[#tbl]`, using `tbl[0]` does a hash lookup.
